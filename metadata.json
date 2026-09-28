@@ -1,7 +1,10 @@
 {
   "name": "GAMEINFOR",
   "description": "Plataforma educacional gamificada para cursos de informática com áreas para Aluno, Professor e Administrador.",
-  "requestFramePermissions": [],
+  "requestFramePermissions": [
+    "microphone",
+    "camera"
+  ],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
 

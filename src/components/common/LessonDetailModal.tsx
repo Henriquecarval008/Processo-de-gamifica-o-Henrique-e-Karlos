@@ -621,7 +621,7 @@ export const LessonDetailModal: React.FC<LessonDetailModalProps> = ({
 
                     <span className="text-xs font-bold text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-500/30 flex items-center gap-1.5 shrink-0">
                       <Sparkles className="w-3.5 h-3.5" />
-                      +{lessonQuiz.rewardXp} XP
+                      +{lessonQuiz.xp} XP
                     </span>
                   </div>
 

@@ -21,6 +21,8 @@ import {
   CalendarCheck,
   X,
   FolderKanban,
+  LogOut,
+  LogIn,
 } from 'lucide-react';
 
 export interface SidebarProps {
@@ -44,7 +46,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isMobileOpen = false,
   onCloseMobile,
 }) => {
-  const { currentUser, submissions, activities } = useGameinfor();
+  const {
+    currentUser,
+    submissions,
+    activities,
+    authenticatedTeacher,
+    authenticatedStudent,
+    isAuthenticated,
+    logoutUser,
+    openStudentAuthModal,
+  } = useGameinfor();
 
   // Teacher pending corrections count
   const pendingCorrectionsCount = submissions.filter((s) => s.status === 'pendente').length;
@@ -95,17 +106,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
   ];
 
   const adminMenu: MenuItem[] = [
-    { id: 'admin-dashboard', label: 'Dashboard', icon: BarChart3 },
-    { id: 'admin-projetos', label: 'Projetos', icon: FolderKanban },
-    { id: 'admin-usuarios', label: 'Usuários', icon: Users },
+    { id: 'admin-dashboard', label: 'Visão Geral', icon: BarChart3 },
     { id: 'admin-professores', label: 'Professores', icon: GraduationCap },
     { id: 'admin-alunos', label: 'Alunos', icon: UserIcon },
     { id: 'admin-turmas', label: 'Turmas', icon: Layers },
-    { id: 'admin-cursos', label: 'Cursos', icon: BookOpen },
-    { id: 'admin-curriculo', label: 'Currículo', icon: FileSpreadsheet },
-    { id: 'admin-gamificacao', label: 'Gamificação', icon: Sparkles },
+    { id: 'admin-projetos', label: 'Projetos', icon: FolderKanban },
+    { id: 'admin-atividades', label: 'Atividades', icon: CheckSquare },
+    { id: 'admin-quizzes', label: 'Questionários', icon: Brain },
     { id: 'admin-relatorios', label: 'Relatórios', icon: CalendarCheck },
     { id: 'admin-configuracoes', label: 'Configurações', icon: Settings },
+    { id: 'admin-assistente', label: 'Assistente Virtual', icon: Sparkles },
+    { id: 'admin-seguranca', label: 'Segurança & Permissões', icon: Shield },
   ];
 
   const activeItems =
@@ -204,6 +215,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
           );
         })}
       </div>
+
+      {/* Logout button or login prompt */}
+      {isAuthenticated ? (
+        <div className="p-3 border-t border-slate-800 bg-slate-950/20">
+          <button
+            onClick={() => {
+              logoutUser();
+              if (onCloseMobile) onCloseMobile();
+            }}
+            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-xs font-semibold border border-rose-500/20 transition-all cursor-pointer"
+            title="Encerrar sessão de forma segura"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            Sair da Conta
+          </button>
+        </div>
+      ) : (
+        <div className="p-3 border-t border-slate-800 bg-slate-950/20">
+          <button
+            onClick={() => {
+              openStudentAuthModal('login');
+              if (onCloseMobile) onCloseMobile();
+            }}
+            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-md shadow-blue-600/30 cursor-pointer"
+          >
+            <LogIn className="w-3.5 h-3.5" />
+            Entrar / Cadastrar
+          </button>
+        </div>
+      )}
 
       {/* Footer Info */}
       <div className="p-4 border-t border-slate-800/80 bg-slate-950/40 text-xs text-slate-400">

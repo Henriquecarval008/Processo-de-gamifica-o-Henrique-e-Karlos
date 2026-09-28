@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GameinforProvider, useGameinfor } from './context/GameinforContext';
 import { Header } from './components/common/Header';
 import { Sidebar } from './components/common/Sidebar';
 import { ToastContainer } from './components/common/ToastContainer';
+import { soundEffects } from './utils/soundEffects';
 
 // Student Components
 import { StudentHome } from './components/student/StudentHome';
@@ -35,9 +36,37 @@ import { TeacherSettings } from './components/teacher/TeacherSettings';
 import { AdminPanel } from './components/admin/AdminPanel';
 import { ProjectsManager } from './components/common/ProjectsManager';
 import { LessonDetailModal } from './components/common/LessonDetailModal';
+import { TeacherAuthModal } from './components/auth/TeacherAuthModal';
+import { StudentAuthModal } from './components/auth/StudentAuthModal';
+import { UnifiedAccessModal } from './components/auth/UnifiedAccessModal';
+import { PasswordResetModal } from './components/auth/PasswordResetModal';
+import { GameinforVoiceAssistant } from './components/assistant/GameinforVoiceAssistant';
 
 const AppContent: React.FC = () => {
-  const { currentUser, selectedLessonForDetail, closeLessonDetail } = useGameinfor();
+  const {
+    currentUser,
+    selectedLessonForDetail,
+    closeLessonDetail,
+    authenticatedTeacher,
+    isUnifiedAccessModalOpen,
+    unifiedAccessInitialTab,
+    closeUnifiedAccessModal,
+    loginAdminSession,
+    isTeacherAuthModalOpen,
+    teacherAuthInitialStep,
+    closeTeacherAuthModal,
+    loginTeacherSession,
+    openTeacherAuthModal,
+    openPasswordResetModal,
+    isStudentAuthModalOpen,
+    studentAuthInitialTab,
+    closeStudentAuthModal,
+    loginStudentSession,
+    isPasswordResetModalOpen,
+    closePasswordResetModal,
+    handlePasswordResetSuccess,
+    passwordResetEmail,
+  } = useGameinfor();
 
   // Tab State depending on current role
   const getDefaultTab = (role: string) => {
@@ -60,10 +89,55 @@ const AppContent: React.FC = () => {
     setActiveTab(getDefaultTab(currentUser.role));
   }
 
+  // Route Permission Protection (Visibilidade != Permissão)
+  useEffect(() => {
+    if (!authenticatedTeacher) {
+      if (activeTab.startsWith('prof-') || activeTab.startsWith('admin-')) {
+        setActiveTab('aluno-inicio');
+      }
+    } else if (currentUser.role === 'professor') {
+      if (activeTab.startsWith('admin-')) {
+        setActiveTab('prof-inicio');
+      }
+    }
+  }, [currentUser.role, authenticatedTeacher, activeTab]);
+
+  // Global Interactive Sounds Listener (Web Audio API subtle clicks)
+  useEffect(() => {
+    const handleGlobalClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+
+      const isInteractive = target.closest(
+        'button, a, input[type="radio"], input[type="checkbox"], select, [role="button"], [data-clickable="true"], .clickable, [data-sound="click"]'
+      );
+      if (isInteractive) {
+        soundEffects.playClick();
+      }
+    };
+
+    document.addEventListener('click', handleGlobalClick, { capture: true, passive: true });
+    return () => {
+      document.removeEventListener('click', handleGlobalClick, { capture: true });
+    };
+  }, []);
+
   const handleTabChange = (tabId: string) => {
+    // Validate role permissions before allowing tab switch
+    if (tabId.startsWith('prof-') || tabId.startsWith('admin-')) {
+      if (!authenticatedTeacher) {
+        openTeacherAuthModal('login');
+        return;
+      }
+    }
+    if (currentUser.role === 'professor' && tabId.startsWith('admin-') && authenticatedTeacher?.role !== 'admin') {
+      return;
+    }
+
     setActiveTab(tabId);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
 
   // Render view based on active tab
   const renderMainContent = () => {
@@ -107,7 +181,7 @@ const AppContent: React.FC = () => {
 
     // Admin Views
     if (activeTab.startsWith('admin-')) {
-      return <AdminPanel currentTab={activeTab} />;
+      return <AdminPanel currentTab={activeTab} onNavigateToTab={handleTabChange} />;
     }
 
     // Fallback
@@ -145,6 +219,56 @@ const AppContent: React.FC = () => {
           onNavigateTab={handleTabChange}
         />
       )}
+
+      {/* Reorganized Unified Access Modal (Admin: Henrique Carvalho & Karlos, Professor, Aluno) */}
+      <UnifiedAccessModal
+        isOpen={isUnifiedAccessModalOpen}
+        onClose={closeUnifiedAccessModal}
+        initialRoleTab={unifiedAccessInitialTab}
+        onSuccessAdmin={(session) => {
+          loginAdminSession(session);
+          handleTabChange('admin-dashboard');
+        }}
+        onSuccessTeacher={(session) => {
+          loginTeacherSession(session);
+          handleTabChange('prof-inicio');
+        }}
+        onSuccessStudent={(session) => {
+          loginStudentSession(session);
+          handleTabChange('aluno-inicio');
+        }}
+        onForgotPassword={(email) => {
+          openPasswordResetModal(email);
+        }}
+      />
+
+      {/* Secure Teacher Authentication & Account Recovery Modal (Fallback & Legacy Direct Links) */}
+      <TeacherAuthModal
+        isOpen={isTeacherAuthModalOpen}
+        onClose={closeTeacherAuthModal}
+        onSuccess={loginTeacherSession}
+        initialStep={teacherAuthInitialStep}
+      />
+
+      {/* Exclusive Password Reset Modal for Supabase Auth Recovery Flow */}
+      <PasswordResetModal
+        isOpen={isPasswordResetModalOpen}
+        onClose={closePasswordResetModal}
+        onSuccess={handlePasswordResetSuccess}
+        accountEmail={passwordResetEmail}
+      />
+
+      {/* Student Authentication Modal */}
+      <StudentAuthModal
+        isOpen={isStudentAuthModalOpen}
+        onClose={closeStudentAuthModal}
+        onSuccess={loginStudentSession}
+        initialTab={studentAuthInitialTab}
+        onOpenTeacherAuth={() => openTeacherAuthModal('login')}
+      />
+
+      {/* Intelligent Interactive Virtual Tutor & Voice Assistant */}
+      <GameinforVoiceAssistant />
 
       {/* Footer */}
       <footer className="border-t border-slate-900 bg-slate-950/80 py-4 text-center text-xs text-slate-500">

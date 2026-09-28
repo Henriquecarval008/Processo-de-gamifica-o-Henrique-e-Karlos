@@ -12,11 +12,18 @@ import {
   FileText,
   FileCheck,
   RefreshCw,
+  Bot,
 } from 'lucide-react';
 import { Activity } from '../../types';
 
 export const StudentActivities: React.FC = () => {
-  const { activities, submissions, currentUser, submitActivity } = useGameinfor();
+  const {
+    activities,
+    submissions,
+    currentUser,
+    submitActivity,
+    openAssistantWithContext,
+  } = useGameinfor();
 
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(
     activities[0] || null
@@ -214,9 +221,31 @@ export const StudentActivities: React.FC = () => {
 
               {/* Activity Detailed Description */}
               <div className="space-y-2">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                  Instruções da Atividade
-                </h4>
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                    Instruções da Atividade
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      openAssistantWithContext(
+                        {
+                          isTakingActivity: true,
+                          activityType: 'exercise',
+                          activityTitle: selectedActivity.title,
+                          currentQuestionText: selectedActivity.description,
+                          topic: `${selectedActivity.module} - ${selectedActivity.lesson}`,
+                        },
+                        `Olá professor! Estou realizando a atividade "${selectedActivity.title}". Pode me orientar sobre como iniciar ou me dar uma dica sobre o procedimento sem me dar a resposta pronta?`
+                      );
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold transition-all shadow-sm"
+                    title="Pedir orientação ao Tutor IA com proteção de XP"
+                  >
+                    <Bot className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Dúvida com o Tutor</span>
+                  </button>
+                </div>
                 <div className="bg-slate-950/70 border border-slate-800 p-4 rounded-xl text-sm text-slate-200 leading-relaxed">
                   {selectedActivity.description}
                 </div>

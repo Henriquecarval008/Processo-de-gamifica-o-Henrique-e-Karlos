@@ -12,6 +12,10 @@ import {
   Award,
   Download,
   AlertCircle,
+  Shield,
+  GraduationCap,
+  Lock,
+  Gamepad2,
 } from 'lucide-react';
 
 interface StudentHomeProps {
@@ -28,6 +32,8 @@ export const StudentHome: React.FC<StudentHomeProps> = ({ onNavigate }) => {
     achievements,
     sharedFiles,
     lessons,
+    isAuthenticated,
+    openUnifiedAccessModal,
   } = useGameinfor();
 
   // Current level data
@@ -52,6 +58,81 @@ export const StudentHome: React.FC<StudentHomeProps> = ({ onNavigate }) => {
 
   return (
     <div className="space-y-6">
+      {/* Reorganized Access Banner (3 portal options: Admin, Professor, Aluno) */}
+      {!isAuthenticated && (
+        <div className="bg-gradient-to-r from-slate-900 via-indigo-950/70 to-purple-950/60 border border-indigo-500/30 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                  Instituto Ambiente • GAMEINFOR
+                </span>
+                <span className="text-xs text-slate-400">Portal Educacional Seguro</span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black text-white mt-1">
+                Acesse sua conta ou cadastre-se
+              </h2>
+              <p className="text-xs text-slate-300 mt-0.5">
+                Escolha o seu perfil para entrar com segurança no sistema:
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* Option 1: Admin */}
+            <button
+              onClick={() => openUnifiedAccessModal('admin')}
+              className="bg-slate-950/80 hover:bg-purple-950/40 border border-purple-500/30 hover:border-purple-500/60 p-4 rounded-xl text-left transition-all group shadow-md cursor-pointer"
+            >
+              <div className="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform">
+                <Shield className="w-5 h-5" />
+              </div>
+              <div className="font-bold text-sm text-white flex items-center justify-between">
+                <span>Administrador</span>
+                <ArrowRight className="w-4 h-4 text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1">
+                Henrique Carvalho & Karlos com autoridade completa.
+              </p>
+            </button>
+
+            {/* Option 2: Professor */}
+            <button
+              onClick={() => openUnifiedAccessModal('professor')}
+              className="bg-slate-950/80 hover:bg-indigo-950/40 border border-indigo-500/30 hover:border-indigo-500/60 p-4 rounded-xl text-left transition-all group shadow-md cursor-pointer"
+            >
+              <div className="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform">
+                <GraduationCap className="w-5 h-5" />
+              </div>
+              <div className="font-bold text-sm text-white flex items-center justify-between">
+                <span>Professor</span>
+                <ArrowRight className="w-4 h-4 text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1">
+                Acesse turmas, atividades, quizzes e materiais didáticos.
+              </p>
+            </button>
+
+            {/* Option 3: Aluno */}
+            <button
+              onClick={() => openUnifiedAccessModal('aluno')}
+              className="bg-slate-950/80 hover:bg-blue-950/40 border border-blue-500/30 hover:border-blue-500/60 p-4 rounded-xl text-left transition-all group shadow-md cursor-pointer"
+            >
+              <div className="w-9 h-9 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform">
+                <Gamepad2 className="w-5 h-5" />
+              </div>
+              <div className="font-bold text-sm text-white flex items-center justify-between">
+                <span>Aluno</span>
+                <ArrowRight className="w-4 h-4 text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1">
+                Entrar com sua conta ou realizar auto-cadastro na turma.
+              </p>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Welcome & Level Hero Banner */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 border border-blue-500/20 p-6 sm:p-8 shadow-xl">
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">

@@ -9,6 +9,31 @@
     <meta property="og:description" content="Plataforma educacional gamificada para cursos de informática com áreas para Aluno, Professor e Administrador." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      (function() {
+        try {
+          var href = window.location.href || '';
+          var hash = window.location.hash || '';
+          var search = window.location.search || '';
+          var isRecovery =
+            hash.indexOf('type=recovery') !== -1 ||
+            search.indexOf('type=recovery') !== -1 ||
+            href.indexOf('type=recovery') !== -1 ||
+            hash.indexOf('type%3Drecovery') !== -1 ||
+            search.indexOf('type%3Drecovery') !== -1 ||
+            href.indexOf('type%3Drecovery') !== -1;
+
+          var hasError =
+            hash.indexOf('error=') !== -1 ||
+            search.indexOf('error=') !== -1 ||
+            href.indexOf('error_description=') !== -1;
+
+          if (isRecovery && !hasError) {
+            sessionStorage.setItem('gameinfor_is_recovering_password', 'true');
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

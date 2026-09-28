@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import {
   User,
   UserRole,
@@ -33,6 +33,16 @@ import {
   initialLevels,
   initialDidacticMaterials,
 } from '../data/initialData';
+import { authService, AuthSession, normalizeUserRole } from '../services/authService';
+import { getAvatarSvgDataUri } from '../data/avatars';
+import {
+  supabase,
+  isSupabaseConfigured,
+  isRecoveryFlowActive,
+  isRecoveryUrlPresent,
+  RECOVERY_STORAGE_KEY,
+  RECOVERY_EMAIL_KEY,
+} from '../services/supabase';
 
 interface ToastNotification {
   id: string;
@@ -61,7 +71,74 @@ interface GameinforContextType {
   levels: LevelConfig[];
   didacticMaterials: DidacticMaterial[];
   notifications: ToastNotification[];
+  addNotification: (notification: Omit<ToastNotification, 'id'>) => void;
   currentStudentClass: ClassRoom | undefined;
+
+  // Reorganized Unified Access Portal (Admin, Professor, Aluno)
+  isUnifiedAccessModalOpen: boolean;
+  unifiedAccessInitialTab: 'admin' | 'professor' | 'aluno';
+  openUnifiedAccessModal: (role?: 'admin' | 'professor' | 'aluno') => void;
+  closeUnifiedAccessModal: () => void;
+  loginAdminSession: (session: AuthSession) => void;
+
+  // Authentication & Role Separation (Professor & Aluno)
+  authenticatedTeacher: AuthSession | null;
+  loginTeacherSession: (session: AuthSession) => void;
+  logoutTeacher: () => void;
+  isTeacherAuthModalOpen: boolean;
+  teacherAuthInitialStep: 'login' | 'register' | 'verify_email' | 'forgot_password' | 'reset_password';
+  openTeacherAuthModal: (step?: 'login' | 'register' | 'verify_email' | 'forgot_password' | 'reset_password') => void;
+  closeTeacherAuthModal: () => void;
+
+  // Exclusive Password Recovery Modal
+  isPasswordResetModalOpen: boolean;
+  passwordResetEmail: string;
+  openPasswordResetModal: (email?: string) => void;
+  closePasswordResetModal: () => void;
+  handlePasswordResetSuccess: () => Promise<void>;
+
+  authenticatedStudent: AuthSession | null;
+  loginStudentSession: (session: AuthSession) => void;
+  logoutStudent: () => void;
+  logoutUser: () => void;
+  isStudentAuthModalOpen: boolean;
+  studentAuthInitialTab: 'login' | 'register';
+  openStudentAuthModal: (tab?: 'login' | 'register') => void;
+  closeStudentAuthModal: () => void;
+  updateUserAvatar: (avatarId: string) => Promise<void>;
+  isAuthenticated: boolean;
+
+  // Voice Assistant / Virtual Tutor State & Actions
+  isAssistantOpen: boolean;
+  openAssistant: () => void;
+  closeAssistant: () => void;
+  toggleAssistant: () => void;
+  assistantContext: {
+    isTakingActivity?: boolean;
+    activityType?: 'quiz' | 'exercise' | 'assignment' | 'general';
+    activityTitle?: string;
+    currentQuestionText?: string;
+    topic?: string;
+  };
+  setAssistantContext: (ctx: {
+    isTakingActivity?: boolean;
+    activityType?: 'quiz' | 'exercise' | 'assignment' | 'general';
+    activityTitle?: string;
+    currentQuestionText?: string;
+    topic?: string;
+  }) => void;
+  openAssistantWithContext: (
+    ctx: {
+      isTakingActivity?: boolean;
+      activityType?: 'quiz' | 'exercise' | 'assignment' | 'general';
+      activityTitle?: string;
+      currentQuestionText?: string;
+      topic?: string;
+    },
+    initialPrompt?: string
+  ) => void;
+  assistantInitialPrompt?: string;
+  clearAssistantInitialPrompt: () => void;
 
   // Actions
   switchUser: (userId: string) => void;
@@ -179,7 +256,359 @@ export const GameinforProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   );
 
   const [users, setUsers] = useState<User[]>(persisted?.users || initialUsers);
-  const [currentUserId, setCurrentUserId] = useState<string>(persisted?.currentUserId || 'user-aluno-1');
+  
+  // Teacher and Student Authentication state
+  const [authenticatedTeacher, setAuthenticatedTeacher] = useState<AuthSession | null>(() => {
+    const s = authService.getCurrentSession();
+    return s && (s.role === 'professor' || s.role === 'admin') ? s : null;
+  });
+
+  // Reorganized Unified Access Portal state (Admin, Professor, Aluno)
+  const [isUnifiedAccessModalOpen, setIsUnifiedAccessModalOpen] = useState(false);
+  const [unifiedAccessInitialTab, setUnifiedAccessInitialTab] = useState<'admin' | 'professor' | 'aluno'>('admin');
+
+  const openUnifiedAccessModal = (role: 'admin' | 'professor' | 'aluno' = 'admin') => {
+    setUnifiedAccessInitialTab(role);
+    setIsUnifiedAccessModalOpen(true);
+  };
+
+  const closeUnifiedAccessModal = () => {
+    setIsUnifiedAccessModalOpen(false);
+  };
+  const [isTeacherAuthModalOpen, setIsTeacherAuthModalOpen] = useState(false);
+  const [teacherAuthInitialStep, setTeacherAuthInitialStep] = useState<
+    'login' | 'register' | 'verify_email' | 'forgot_password' | 'reset_password'
+  >('login');
+
+  const [authenticatedStudent, setAuthenticatedStudent] = useState<AuthSession | null>(() => {
+    const s = authService.getCurrentSession();
+    return s && s.role === 'aluno' ? s : null;
+  });
+  const [isStudentAuthModalOpen, setIsStudentAuthModalOpen] = useState(false);
+  const [studentAuthInitialTab, setStudentAuthInitialTab] = useState<'login' | 'register'>('login');
+
+  const openStudentAuthModal = (tab: 'login' | 'register' = 'login') => {
+    setStudentAuthInitialTab(tab);
+    setIsStudentAuthModalOpen(true);
+  };
+
+  const closeStudentAuthModal = () => {
+    setIsStudentAuthModalOpen(false);
+  };
+
+  // Default guest user (clean slate, no fake student identity by default)
+  const guestUser: User = useMemo(
+    () => ({
+      id: 'guest-aluno',
+      name: 'Aluno Convidado',
+      nickname: 'Convidado',
+      email: '',
+      role: 'aluno',
+      avatar: getAvatarSvgDataUri('avatar-gamer'),
+      avatarId: 'avatar-gamer',
+      xp: 0,
+      level: 1,
+      joinedAt: new Date().toISOString().split('T')[0],
+      bio: 'Entre com sua conta de aluno para registrar seu progresso e conquistas.',
+    }),
+    []
+  );
+
+  const [currentUserId, setCurrentUserId] = useState<string>(() => {
+    const session = authService.getCurrentSession();
+    if (session) return session.userId || session.teacherId;
+    return 'guest-aluno';
+  });
+
+  // Voice Assistant / Virtual Tutor state
+  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  const [assistantInitialPrompt, setAssistantInitialPrompt] = useState<string | undefined>(undefined);
+  const [assistantContext, setAssistantContextState] = useState<{
+    isTakingActivity?: boolean;
+    activityType?: 'quiz' | 'exercise' | 'assignment' | 'general';
+    activityTitle?: string;
+    currentQuestionText?: string;
+    topic?: string;
+  }>({
+    isTakingActivity: false,
+    activityType: 'general',
+  });
+
+  const openAssistant = () => setIsAssistantOpen(true);
+  const closeAssistant = () => setIsAssistantOpen(false);
+  const toggleAssistant = () => setIsAssistantOpen((prev) => !prev);
+
+  const setAssistantContext = (ctx: {
+    isTakingActivity?: boolean;
+    activityType?: 'quiz' | 'exercise' | 'assignment' | 'general';
+    activityTitle?: string;
+    currentQuestionText?: string;
+    topic?: string;
+  }) => {
+    setAssistantContextState((prev) => ({ ...prev, ...ctx }));
+  };
+
+  const openAssistantWithContext = (
+    ctx: {
+      isTakingActivity?: boolean;
+      activityType?: 'quiz' | 'exercise' | 'assignment' | 'general';
+      activityTitle?: string;
+      currentQuestionText?: string;
+      topic?: string;
+    },
+    initialPrompt?: string
+  ) => {
+    setAssistantContextState((prev) => ({ ...prev, ...ctx }));
+    if (initialPrompt) {
+      setAssistantInitialPrompt(initialPrompt);
+    }
+    setIsAssistantOpen(true);
+  };
+
+  const clearAssistantInitialPrompt = () => setAssistantInitialPrompt(undefined);
+
+  const openTeacherAuthModal = (
+    step: 'login' | 'register' | 'verify_email' | 'forgot_password' | 'reset_password' = 'login'
+  ) => {
+    setTeacherAuthInitialStep(step);
+    setIsTeacherAuthModalOpen(true);
+  };
+
+  const closeTeacherAuthModal = () => {
+    setIsTeacherAuthModalOpen(false);
+  };
+
+  // Dedicated Password Reset Modal state & handlers
+  const [isPasswordResetModalOpen, setIsPasswordResetModalOpen] = useState(() => {
+    return isRecoveryFlowActive();
+  });
+  const [passwordResetEmail, setPasswordResetEmail] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem(RECOVERY_EMAIL_KEY) || '';
+    }
+    return '';
+  });
+
+  const openPasswordResetModal = (email?: string) => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem(RECOVERY_STORAGE_KEY, 'true');
+      if (email) {
+        sessionStorage.setItem(RECOVERY_EMAIL_KEY, email);
+      }
+    }
+    if (email) setPasswordResetEmail(email);
+    setIsPasswordResetModalOpen(true);
+  };
+
+  const closePasswordResetModal = () => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem(RECOVERY_STORAGE_KEY);
+      sessionStorage.removeItem(RECOVERY_EMAIL_KEY);
+      try {
+        window.history.replaceState(null, '', window.location.pathname);
+      } catch {}
+    }
+    setIsPasswordResetModalOpen(false);
+  };
+
+  const handlePasswordResetSuccess = async () => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem(RECOVERY_STORAGE_KEY);
+      sessionStorage.removeItem(RECOVERY_EMAIL_KEY);
+      try {
+        window.history.replaceState(null, '', window.location.pathname);
+      } catch {}
+    }
+    setIsPasswordResetModalOpen(false);
+    try {
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch {}
+    setAuthenticatedTeacher(null);
+    setAuthenticatedStudent(null);
+    setCurrentUserId('guest-aluno');
+    addNotification({
+      type: 'success',
+      title: 'Senha Redefinida com Sucesso!',
+      message: 'Sua nova senha foi salva. Faça login com suas novas credenciais.',
+    });
+    openTeacherAuthModal('login');
+  };
+
+  const loginAdminSession = (session: AuthSession) => {
+    setAuthenticatedTeacher(session);
+    setAuthenticatedStudent(null);
+    const avatarId = session.avatarId || (session.name.toLowerCase().includes('karlos') ? 'avatar-gamer' : 'avatar-tecnologia');
+    const avatarUrl = getAvatarSvgDataUri(avatarId);
+    const adminId = session.userId || session.teacherId;
+
+    setUsers((prev) => {
+      const exists = prev.find(
+        (u) => u.id === adminId || u.email.toLowerCase() === session.email.toLowerCase()
+      );
+      if (exists) {
+        return prev.map((u) =>
+          u.id === exists.id
+            ? { ...u, id: adminId, name: session.name, role: 'admin', avatar: avatarUrl, avatarId }
+            : u
+        );
+      }
+      const newAdmin: User = {
+        id: adminId,
+        name: session.name,
+        nickname: session.name.split(' ')[0],
+        email: session.email,
+        role: 'admin',
+        avatar: avatarUrl,
+        avatarId,
+        xp: 6000,
+        level: 5,
+        joinedAt: new Date().toISOString().split('T')[0],
+        bio: 'Administrador e professor do Instituto Ambiente & GAMEINFOR.',
+      };
+      return [...prev, newAdmin];
+    });
+    setCurrentUserId(adminId);
+    setIsUnifiedAccessModalOpen(false);
+    setIsTeacherAuthModalOpen(false);
+    addNotification({
+      type: 'success',
+      title: 'Acesso Administrativo Autorizado',
+      message: `Bem-vindo(a), Administrador ${session.name}! Sessão independente iniciada.`,
+    });
+  };
+
+  const loginTeacherSession = (session: AuthSession) => {
+    setAuthenticatedTeacher(session);
+    setAuthenticatedStudent(null);
+    const avatarId = session.avatarId || 'avatar-tecnologia';
+    const avatarUrl = getAvatarSvgDataUri(avatarId);
+    const teacherId = session.userId || session.teacherId;
+
+    setUsers((prev) => {
+      const exists = prev.find(
+        (u) => u.id === teacherId || u.email.toLowerCase() === session.email.toLowerCase()
+      );
+      if (exists) {
+        return prev.map((u) =>
+          u.id === exists.id
+            ? { ...u, id: teacherId, name: session.name, role: session.role, avatar: avatarUrl, avatarId }
+            : u
+        );
+      }
+      const newTeacher: User = {
+        id: teacherId,
+        name: session.name,
+        nickname: session.name.split(' ')[0],
+        email: session.email,
+        role: session.role,
+        avatar: avatarUrl,
+        avatarId,
+        xp: 4500,
+        level: 4,
+        joinedAt: new Date().toISOString().split('T')[0],
+        bio: 'Docente cadastrado no sistema GAMEINFOR.',
+      };
+      return [...prev, newTeacher];
+    });
+    setCurrentUserId(teacherId);
+    setIsTeacherAuthModalOpen(false);
+    setIsUnifiedAccessModalOpen(false);
+    addNotification({
+      type: 'success',
+      title: 'Área do Professor Acessada',
+      message: `Bem-vindo(a), Prof. ${session.name}! Sessão autenticada.`,
+    });
+  };
+
+  const loginStudentSession = (session: AuthSession) => {
+    setAuthenticatedStudent(session);
+    setAuthenticatedTeacher(null);
+    const avatarId = session.avatarId || 'avatar-gamer';
+    const avatarUrl = getAvatarSvgDataUri(avatarId);
+    const studentId = session.userId || session.teacherId;
+
+    setUsers((prev) => {
+      const exists = prev.find(
+        (u) => u.id === studentId || u.email.toLowerCase() === session.email.toLowerCase()
+      );
+      if (exists) {
+        return prev.map((u) =>
+          u.id === exists.id
+            ? { ...u, id: studentId, name: session.name, role: 'aluno', avatar: avatarUrl, avatarId }
+            : u
+        );
+      }
+      const newStudent: User = {
+        id: studentId,
+        name: session.name,
+        nickname: session.name.split(' ')[0],
+        email: session.email,
+        role: 'aluno',
+        avatar: avatarUrl,
+        avatarId,
+        xp: 0,
+        level: 1,
+        joinedAt: new Date().toISOString().split('T')[0],
+        bio: 'Aluno cadastrado no sistema GAMEINFOR.',
+      };
+      return [...prev, newStudent];
+    });
+    setCurrentUserId(studentId);
+    setIsStudentAuthModalOpen(false);
+    setIsUnifiedAccessModalOpen(false);
+    addNotification({
+      type: 'success',
+      title: 'Login Realizado com Sucesso!',
+      message: `Bem-vindo(a), ${session.name}!`,
+    });
+  };
+
+  const logoutUser = () => {
+    authService.logout('local');
+    setAuthenticatedTeacher(null);
+    setAuthenticatedStudent(null);
+    setCurrentUserId('guest-aluno');
+    addNotification({
+      type: 'info',
+      title: 'Sessão Encerrada',
+      message: 'Você saiu da plataforma com segurança.',
+    });
+  };
+
+  const logoutTeacher = () => {
+    logoutUser();
+  };
+
+  const logoutStudent = () => {
+    logoutUser();
+  };
+
+  const updateUserAvatar = async (avatarId: string) => {
+    const avatarUrl = getAvatarSvgDataUri(avatarId);
+
+    setUsers((prev) =>
+      prev.map((u) =>
+        u.id === currentUser.id ? { ...u, avatar: avatarUrl, avatarId } : u
+      )
+    );
+
+    if (authenticatedTeacher && (currentUser.role === 'professor' || currentUser.role === 'admin')) {
+      setAuthenticatedTeacher((prev) => (prev ? { ...prev, avatarId } : null));
+    }
+    if (authenticatedStudent && currentUser.role === 'aluno') {
+      setAuthenticatedStudent((prev) => (prev ? { ...prev, avatarId } : null));
+    }
+
+    if (currentUser.id && currentUser.id !== 'guest-aluno') {
+      await authService.updateProfileAvatar(currentUser.id, avatarId);
+    }
+
+    addNotification({
+      type: 'success',
+      title: 'Avatar Atualizado!',
+      message: 'Sua nova foto de perfil já está visível em todo o GAMEINFOR.',
+    });
+  };
   const [classes, setClasses] = useState<ClassRoom[]>(() => {
     const baseClasses = persisted?.classes || initialClasses;
     return baseClasses.map((cls: ClassRoom) => {
@@ -212,8 +641,232 @@ export const GameinforProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const openLessonDetail = (lesson: Lesson) => setSelectedLessonForDetail(lesson);
   const closeLessonDetail = () => setSelectedLessonForDetail(null);
 
-  // Current active user
-  const currentUser = users.find((u) => u.id === currentUserId) || users[0];
+  // Current active user derivation
+  const currentUser: User = useMemo(() => {
+    if (authenticatedTeacher) {
+      const teacherId = authenticatedTeacher.userId || authenticatedTeacher.teacherId;
+      const found = users.find((u) => u.id === teacherId);
+      if (found) return found;
+      return {
+        id: teacherId,
+        name: authenticatedTeacher.name,
+        nickname: authenticatedTeacher.name.split(' ')[0],
+        email: authenticatedTeacher.email,
+        role: authenticatedTeacher.role,
+        avatar: getAvatarSvgDataUri(authenticatedTeacher.avatarId || 'avatar-tecnologia'),
+        avatarId: authenticatedTeacher.avatarId || 'avatar-tecnologia',
+        xp: 4500,
+        level: 4,
+        joinedAt: new Date().toISOString().split('T')[0],
+        bio: 'Docente cadastrado no sistema GAMEINFOR.',
+      };
+    }
+
+    if (authenticatedStudent) {
+      const studentId = authenticatedStudent.userId || authenticatedStudent.teacherId;
+      const found = users.find((u) => u.id === studentId);
+      if (found) return found;
+      return {
+        id: studentId,
+        name: authenticatedStudent.name,
+        nickname: authenticatedStudent.name.split(' ')[0],
+        email: authenticatedStudent.email,
+        role: 'aluno',
+        avatar: getAvatarSvgDataUri(authenticatedStudent.avatarId || 'avatar-gamer'),
+        avatarId: authenticatedStudent.avatarId || 'avatar-gamer',
+        xp: 0,
+        level: 1,
+        joinedAt: new Date().toISOString().split('T')[0],
+        bio: 'Aluno cadastrado no sistema GAMEINFOR.',
+      };
+    }
+
+    const found = users.find((u) => u.id === currentUserId);
+    if (found && found.id !== 'guest-aluno') return found;
+
+    return guestUser;
+  }, [authenticatedTeacher, authenticatedStudent, users, currentUserId, guestUser]);
+
+  // Supabase Auth real-time sync & session restoration
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+
+    // Listener para o evento customizado disparado na captura inicial imediata
+    const handleCustomRecoveryEvent = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const recoveryUserEmail = customEvent.detail?.session?.user?.email;
+      if (recoveryUserEmail) {
+        setPasswordResetEmail(recoveryUserEmail);
+      }
+      setIsPasswordResetModalOpen(true);
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('gameinfor:password-recovery', handleCustomRecoveryEvent);
+    }
+
+    // 1. Identificação do retorno de link de recuperação (URL hash ou query params)
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash || '';
+      const search = window.location.search || '';
+      const hashParams = new URLSearchParams(hash.startsWith('#') ? hash.substring(1) : hash);
+      const searchParams = new URLSearchParams(search);
+
+      const errorDesc =
+        hashParams.get('error_description') ||
+        searchParams.get('error_description') ||
+        hashParams.get('error') ||
+        searchParams.get('error');
+
+      if (errorDesc) {
+        console.warn('[Supabase Auth] Link de recuperação expirado ou inválido:', errorDesc);
+        sessionStorage.removeItem(RECOVERY_STORAGE_KEY);
+        sessionStorage.removeItem(RECOVERY_EMAIL_KEY);
+        setIsPasswordResetModalOpen(false);
+        addNotification({
+          type: 'info',
+          title: 'Link de Recuperação Inválido ou Expirado',
+          message: 'O link de recuperação de senha expirou ou já foi utilizado. Solicite um novo link.',
+        });
+        try {
+          window.history.replaceState(null, '', window.location.pathname);
+        } catch {}
+      } else if (isRecoveryFlowActive()) {
+        sessionStorage.setItem(RECOVERY_STORAGE_KEY, 'true');
+        setIsPasswordResetModalOpen(true);
+      }
+    }
+
+    // Check existing Supabase session on startup
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      // Se estamos em fluxo ativo de recuperação de senha, priorizar o modal exclusivo de recuperação
+      if (isRecoveryFlowActive()) {
+        if (session?.user?.email) {
+          setPasswordResetEmail(session.user.email);
+        }
+        setIsPasswordResetModalOpen(true);
+        return;
+      }
+
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .maybeSingle();
+
+        // Apenas o campo profiles.tipo determina perfil de professor no banco de dados (sem bypass via user_metadata)
+        const role = profile?.tipo ? normalizeUserRole(profile.tipo) : 'aluno';
+        const name =
+          profile?.nome ||
+          session.user.user_metadata?.full_name ||
+          session.user.email?.split('@')[0] ||
+          'Usuário';
+        const avatarId =
+          (profile as { avatar_id?: string } | null)?.avatar_id ||
+          session.user.user_metadata?.avatar_id ||
+          (role === 'professor' ? 'avatar-tecnologia' : 'avatar-gamer');
+
+        const authSession: AuthSession = {
+          token: session.access_token,
+          userId: session.user.id,
+          teacherId: session.user.id,
+          name,
+          email: session.user.email || '',
+          role: role as 'aluno' | 'professor' | 'admin',
+          avatarId,
+          loginAt: Date.now(),
+        };
+
+        if (role === 'professor' || role === 'admin') {
+          setAuthenticatedTeacher(authSession);
+          setAuthenticatedStudent(null);
+        } else {
+          setAuthenticatedStudent(authSession);
+          setAuthenticatedTeacher(null);
+        }
+        setCurrentUserId(session.user.id);
+      }
+    }).catch((err) => {
+      console.warn('[Supabase] Falha ao verificar sessão inicial:', err);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        // Evento oficial do Supabase Auth disparado ao acessar o link de recuperação
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem(RECOVERY_STORAGE_KEY, 'true');
+        }
+        if (session?.user?.email) {
+          setPasswordResetEmail(session.user.email);
+        }
+        setIsPasswordResetModalOpen(true);
+      } else if (event === 'SIGNED_OUT') {
+        setAuthenticatedTeacher(null);
+        setAuthenticatedStudent(null);
+        setCurrentUserId('guest-aluno');
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+        // Se a sessão atual é de recuperação de senha, NÃO fecha o modal nem ativa sessão comum
+        if (isRecoveryFlowActive()) {
+          if (session?.user?.email) {
+            setPasswordResetEmail(session.user.email);
+          }
+          setIsPasswordResetModalOpen(true);
+          return;
+        }
+
+        if (session?.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .maybeSingle();
+
+          // Apenas o campo profiles.tipo determina perfil de professor no banco de dados (sem bypass via user_metadata)
+          const role = profile?.tipo ? normalizeUserRole(profile.tipo) : 'aluno';
+          const name =
+            profile?.nome ||
+            session.user.user_metadata?.full_name ||
+            session.user.email?.split('@')[0] ||
+            'Usuário';
+          const avatarId =
+            (profile as { avatar_id?: string } | null)?.avatar_id ||
+            session.user.user_metadata?.avatar_id ||
+            (role === 'professor' ? 'avatar-tecnologia' : 'avatar-gamer');
+
+          const authSession: AuthSession = {
+            token: session.access_token,
+            userId: session.user.id,
+            teacherId: session.user.id,
+            name,
+            email: session.user.email || '',
+            role: role as 'aluno' | 'professor' | 'admin',
+            avatarId,
+            loginAt: Date.now(),
+          };
+
+          if (role === 'professor' || role === 'admin') {
+            setAuthenticatedTeacher(authSession);
+            setAuthenticatedStudent(null);
+          } else {
+            setAuthenticatedStudent(authSession);
+            setAuthenticatedTeacher(null);
+          }
+          setCurrentUserId(session.user.id);
+        }
+      }
+    });
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('gameinfor:password-recovery', handleCustomRecoveryEvent);
+      }
+      subscription.unsubscribe();
+    };
+  }, []);
+
   const currentStudentClass = classes.find((c) => c.id === currentUser.classId);
   const activeProject = activeProjectId === 'all' ? undefined : projects.find((p) => p.id === activeProjectId);
 
@@ -266,23 +919,45 @@ export const GameinforProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return 1;
   };
 
-  // Switch active user
+  // Switch active user with strict role security
   const switchUser = (userId: string) => {
     const target = users.find((u) => u.id === userId);
-    if (target) {
-      setCurrentUserId(userId);
-      addNotification({
-        type: 'info',
-        title: 'Perfil Conectado',
-        message: `Você agora está visualizando como ${target.name} (${target.role.toUpperCase()})`,
-      });
+    if (!target) return;
+
+    // Enforce teacher authentication barrier
+    if (target.role === 'professor' || target.role === 'admin') {
+      if (!authenticatedTeacher || authenticatedTeacher.teacherId !== target.id) {
+        openTeacherAuthModal('login');
+        return;
+      }
     }
+
+    setCurrentUserId(userId);
+    addNotification({
+      type: 'info',
+      title: 'Perfil Conectado',
+      message: `Você agora está visualizando como ${target.name} (${target.role.toUpperCase()})`,
+    });
   };
 
   const switchRole = (role: UserRole) => {
-    const target = users.find((u) => u.role === role);
-    if (target) {
-      switchUser(target.id);
+    if (role === 'aluno') {
+      const studentUser = users.find((u) => u.role === 'aluno') || users[0];
+      setCurrentUserId(studentUser.id);
+      return;
+    }
+
+    if (role === 'professor' || role === 'admin') {
+      if (authenticatedTeacher) {
+        const teacherUser = users.find((u) => u.id === authenticatedTeacher.teacherId);
+        if (teacherUser) {
+          setCurrentUserId(teacherUser.id);
+        } else {
+          loginTeacherSession(authenticatedTeacher);
+        }
+      } else {
+        openTeacherAuthModal('login');
+      }
     }
   };
 
@@ -683,7 +1358,6 @@ export const GameinforProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             u.id === currentUser.id ? { ...u, xp: newXp, level: newLevel } : u
           )
         );
-        setCurrentUser((prev) => ({ ...prev, xp: newXp, level: newLevel }));
 
         addNotification({
           type: 'xp',
@@ -1251,8 +1925,45 @@ export const GameinforProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         createClassRoom,
         createUser,
         updateLevelConfig,
+        addNotification,
         dismissNotification,
         resetAllData,
+        isUnifiedAccessModalOpen,
+        unifiedAccessInitialTab,
+        openUnifiedAccessModal,
+        closeUnifiedAccessModal,
+        loginAdminSession,
+        authenticatedTeacher,
+        loginTeacherSession,
+        logoutTeacher,
+        isTeacherAuthModalOpen,
+        teacherAuthInitialStep,
+        openTeacherAuthModal,
+        closeTeacherAuthModal,
+        isPasswordResetModalOpen,
+        passwordResetEmail,
+        openPasswordResetModal,
+        closePasswordResetModal,
+        handlePasswordResetSuccess,
+        authenticatedStudent,
+        loginStudentSession,
+        logoutStudent,
+        logoutUser,
+        isStudentAuthModalOpen,
+        studentAuthInitialTab,
+        openStudentAuthModal,
+        closeStudentAuthModal,
+        updateUserAvatar,
+        isAuthenticated: Boolean(authenticatedTeacher || authenticatedStudent),
+        isAssistantOpen,
+        openAssistant,
+        closeAssistant,
+        toggleAssistant,
+        assistantContext,
+        setAssistantContext,
+        openAssistantWithContext,
+        assistantInitialPrompt,
+        clearAssistantInitialPrompt,
       }}
     >
       {children}

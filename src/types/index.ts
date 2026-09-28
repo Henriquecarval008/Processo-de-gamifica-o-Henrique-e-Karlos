@@ -1,5 +1,19 @@
 export type UserRole = 'aluno' | 'professor' | 'admin';
 
+export type AcademicStatus = 'em_andamento' | 'recuperacao' | 'aprovado' | 'reprovado';
+
+export interface AcademicHistoryEntry {
+  id: string;
+  studentId: string;
+  studentName: string;
+  previousStatus: AcademicStatus;
+  newStatus: AcademicStatus;
+  reason: string;
+  changedBy: string;
+  changedById?: string;
+  changedAt: string;
+}
+
 export type ProjectStatus = 'ativo' | 'planejamento' | 'concluido' | 'pausado';
 
 export interface Project {
@@ -23,9 +37,12 @@ export interface User {
   id: string;
   name: string;
   nickname: string;
+  username?: string;
   email: string;
   role: UserRole;
+  cargo?: string;
   avatar: string;
+  avatarId?: string;
   xp: number;
   level: number;
   projectId?: string;
@@ -35,6 +52,31 @@ export interface User {
   joinedAt: string;
   phone?: string;
   bio?: string;
+  isMock?: boolean;
+  academicStatus?: AcademicStatus;
+}
+
+export type NexusEmotion =
+  | 'alegria'
+  | 'curiosidade'
+  | 'atencao'
+  | 'surpresa'
+  | 'empatia'
+  | 'concentracao'
+  | 'seriedade'
+  | 'satisfacao'
+  | 'motivacao'
+  | 'processamento'
+  | 'neutro';
+
+export interface AssistantKnowledgeItem {
+  id: string;
+  category: string;
+  title: string;
+  content: string;
+  active: boolean;
+  updatedBy?: string;
+  updatedAt?: string;
 }
 
 export interface LevelConfig {
@@ -131,13 +173,15 @@ export interface Submission {
   fileType: string;
   fileSize: string;
   fileDataUrl?: string;
+  storagePath?: string;
   submittedAt: string;
-  status: 'pendente' | 'corrigido' | 'revisao';
+  status: 'pendente' | 'corrigido' | 'revisao' | 'ajustes';
   grade?: string;
   feedback?: string;
   awardedXp?: number;
   gradedAt?: string;
   gradedBy?: string;
+  isMock?: boolean;
 }
 
 export interface SharedFile {
@@ -271,3 +315,133 @@ export interface DidacticMaterial {
   publishedAt?: string;
   sections: DidacticSection[];
 }
+
+// ==========================================
+// LIVE INTERACTIVE QUIZ ROOM (SALA AO VIVO)
+// ==========================================
+
+export type LiveQuizRoomStatus =
+  | 'waiting'          // Sala de espera / lobby
+  | 'in_progress'      // Pergunta ativa
+  | 'question_ended'   // Pergunta finalizada, mostrando acertos/erros
+  | 'showing_ranking'  // Exibindo ranking parcial com ultrapassagens
+  | 'finished';        // Quiz finalizado, pódio e resultado final
+
+export interface LiveQuizQuestion {
+  id: string;
+  question: string;
+  options: [string, string, string, string] | string[];
+  correctIndex: number;
+  explanation?: string;
+  image?: string; // Data URL or image path
+  timeSec?: number; // Tempo individual da pergunta (se não definido, usa o da sala)
+}
+
+export interface LiveQuizParticipant {
+  id: string;
+  roomId: string;
+  name: string;
+  avatar: string;
+  xp: number;
+  correctCount: number;
+  wrongCount: number;
+  totalAnswerTimeMs: number;
+  lastAnswer?: {
+    questionIndex: number;
+    optionIndex: number;
+    isCorrect: boolean;
+    timeTakenSec: number;
+    xpDelta: number;
+    answeredAt: number;
+  };
+  previousRank: number;
+  currentRank: number;
+  rankDelta?: number; // >0 subiu, <0 desceu, 0 manteve
+  joinedAt: number;
+  isBot?: boolean;
+}
+
+export interface LiveQuizRoom {
+  id: string;
+  code: string; // Ex: GAME-4821
+  name: string; // Ex: "Revisão de Informática Básica"
+  lessonTitle?: string;
+  description?: string;
+  teacherId: string;
+  teacherName: string;
+  status: LiveQuizRoomStatus;
+  defaultTimeSec: number; // Ex: 30 segundos
+  allowImages: boolean;
+  questions: LiveQuizQuestion[];
+  currentQuestionIndex: number;
+  currentQuestionStartedAt?: number; // Timestamp ms
+  currentQuestionDuration?: number; // Em segundos para a pergunta atual
+  timerRemaining?: number; // Segundos restantes sincronizados
+  isTimerPaused?: boolean;
+  slidesMaterial?: {
+    name: string;
+    type: string;
+    size: string;
+    dataUrl?: string;
+    uploadedAt: string;
+  };
+  xpRules: {
+    startingXp: number; // Padrão: 1000 XP
+    correctXp: number;  // Padrão: +100 XP
+    wrongXp: number;    // Padrão: -30 XP
+    speedBonus: boolean;// Bônus por resposta rápida
+  };
+  audioConfig?: RoomAudioConfig;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export type MusicCategoryId =
+  | 'relaxing'
+  | 'arcade'
+  | 'energy'
+  | 'cheerful'
+  | 'suspense'
+  | 'tech'
+  | 'focus'
+  | 'instrumental'
+  | 'none'
+  | 'custom';
+
+export interface MusicTrackDefinition {
+  id: string;
+  title: string;
+  category: MusicCategoryId;
+  categoryLabel: string;
+  categoryIcon: string;
+  description: string;
+  bpm?: number;
+  isSynthesized?: boolean;
+}
+
+export interface CustomUploadedTrack {
+  name: string;
+  type: string;
+  size: string;
+  dataUrl: string;
+  duration?: number;
+}
+
+export interface RoomAudioConfig {
+  musicEnabled: boolean;
+  selectedTrackId: string;
+  trackCategory: MusicCategoryId;
+  trackTitle: string;
+  volume: number; // 0.0 a 1.0 (0% a 100%)
+  effectsEnabled: boolean;
+  customTrack?: CustomUploadedTrack;
+}
+
+export interface AudioSettings {
+  interfaceSoundsEnabled: boolean;
+  musicEnabled: boolean;
+  effectsVolume: number; // 0.0 a 1.0
+  musicVolume: number;   // 0.0 a 1.0
+  selectedTrackId?: string;
+}
+

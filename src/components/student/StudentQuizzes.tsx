@@ -10,11 +10,28 @@ import {
   RotateCcw,
   Trophy,
   ArrowRight,
+  Radio,
+  Zap,
+  Bot,
+  Lightbulb,
 } from 'lucide-react';
 import { Quiz } from '../../types';
+import { StudentLiveQuizView } from '../liveQuiz/StudentLiveQuizView';
+import { liveQuizService, RoomEventPayload } from '../../services/liveQuizService';
+import { soundEffects } from '../../utils/soundEffects';
 
 export const StudentQuizzes: React.FC = () => {
-  const { quizzes, quizAttempts, currentUser, completeQuiz } = useGameinfor();
+  const {
+    quizzes,
+    quizAttempts,
+    currentUser,
+    completeQuiz,
+    setAssistantContext,
+    openAssistantWithContext,
+  } = useGameinfor();
+
+  // Mode: 'live' or 'practice'
+  const [viewMode, setViewMode] = useState<'live' | 'practice'>('live');
 
   const [activeQuiz, setActiveQuiz] = useState<Quiz | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -23,8 +40,88 @@ export const StudentQuizzes: React.FC = () => {
   const [quizFinished, setQuizFinished] = useState(false);
   const [earnedXpState, setEarnedXpState] = useState<number | null>(null);
 
+  // Check if there are active rooms right now
+  const [activeRoomsCount, setActiveRoomsCount] = useState<number>(() => {
+    return liveQuizService.getRooms().filter((r) => r.status !== 'finished').length;
+  });
+
+  useEffect(() => {
+    const unsub = liveQuizService.subscribe(() => {
+      setActiveRoomsCount(
+        liveQuizService.getRooms().filter((r) => r.status !== 'finished').length
+      );
+    });
+    return () => unsub();
+  }, []);
+
   // My attempts
   const myAttempts = quizAttempts.filter((a) => a.studentId === currentUser.id);
+
+  // Synchronize Assistant Context with Active Quiz and Question
+  useEffect(() => {
+    if (activeQuiz && !quizFinished) {
+      setAssistantContext({
+        isTakingActivity: true,
+        activityType: 'quiz',
+        activityTitle: activeQuiz.title,
+        currentQuestionText: activeQuiz.questions[currentQuestionIndex]?.question || '',
+        topic: activeQuiz.module || 'Informática',
+      });
+    } else {
+      setAssistantContext({
+        isTakingActivity: false,
+        activityType: 'general',
+        activityTitle: undefined,
+        currentQuestionText: undefined,
+      });
+    }
+
+    return () => {
+      setAssistantContext({
+        isTakingActivity: false,
+        activityType: 'general',
+      });
+    };
+  }, [activeQuiz, currentQuestionIndex, quizFinished]);
+
+  // If student is in Live Quiz mode
+  if (viewMode === 'live') {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                soundEffects.playClick();
+                setViewMode('live');
+              }}
+              className="px-4 py-2 rounded-xl text-xs font-black bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex items-center gap-2 shadow-sm"
+            >
+              <Radio className="w-4 h-4 text-cyan-400" />
+              Sala ao Vivo com Código
+              {activeRoomsCount > 0 && (
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              )}
+            </button>
+
+            <button
+              onClick={() => {
+                soundEffects.playClick();
+                setViewMode('practice');
+              }}
+              className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors flex items-center gap-2"
+            >
+              <HelpCircle className="w-4 h-4 text-indigo-400" />
+              Quizzes Individuais de Fixação
+            </button>
+          </div>
+        </div>
+
+        <StudentLiveQuizView onBackToQuizzes={() => setViewMode('practice')} />
+      </div>
+    );
+  }
+
 
   // Timer countdown while taking quiz
   useEffect(() => {
@@ -139,9 +236,33 @@ export const StudentQuizzes: React.FC = () => {
 
               {/* Current Question */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-white leading-relaxed">
-                  {activeQuiz.questions[currentQuestionIndex].question}
-                </h3>
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                  <h3 className="text-lg font-semibold text-white leading-relaxed flex-1">
+                    {activeQuiz.questions[currentQuestionIndex].question}
+                  </h3>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      soundEffects.playClick();
+                      openAssistantWithContext(
+                        {
+                          isTakingActivity: true,
+                          activityType: 'quiz',
+                          activityTitle: activeQuiz.title,
+                          currentQuestionText: activeQuiz.questions[currentQuestionIndex].question,
+                          topic: activeQuiz.module,
+                        },
+                        `Professor, estou na questão: "${activeQuiz.questions[currentQuestionIndex].question}". Pode me dar uma pista conceitual sem me dar a resposta?`
+                      );
+                    }}
+                    className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold transition-all shadow-sm self-start"
+                    title="Pedir dica conceitual ao tutor (o tutor não revelará o gabarito)"
+                  >
+                    <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Dica do Tutor</span>
+                  </button>
+                </div>
 
                 {/* Options */}
                 <div className="space-y-2.5">
