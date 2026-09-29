@@ -5,6 +5,8 @@
  * and Speech Synthesis for voice responses.
  */
 
+import { nexusVoiceService } from './nexusVoiceService';
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
@@ -387,7 +389,7 @@ class AssistantService {
   }
 
   /**
-   * Speak text using Web Speech Synthesis
+   * Speak text using Nexus Voice Service
    */
   public speak(
     text: string,
@@ -395,74 +397,11 @@ class AssistantService {
     onEnd?: () => void,
     onError?: (err: any) => void
   ): void {
-    if (!this.voiceEnabled || !this.isSynthesisSupported || typeof window === 'undefined') {
-      if (onEnd) onEnd();
-      return;
-    }
-
-    this.stopSpeaking();
-
-    // Clean text of markdown formatting (asterisks, hashtags, code blocks)
-    const cleanText = text
-      .replace(/\*\*(.*?)\*\*/g, '$1')
-      .replace(/\*(.*?)\*/g, '$1')
-      .replace(/#+\s/g, '')
-      .replace(/`([^`]+)`/g, '$1')
-      .replace(/\[(.*?)\]\(.*?\)/g, '$1')
-      .trim();
-
-    if (!cleanText) {
-      if (onEnd) onEnd();
-      return;
-    }
-
-    try {
-      const utterance = new SpeechSynthesisUtterance(cleanText);
-      utterance.lang = 'pt-BR';
-      utterance.rate = 1.05;
-      utterance.pitch = 1.0;
-
-      // Select pt-BR voice
-      const voices = window.speechSynthesis.getVoices();
-      const ptVoice =
-        voices.find((v) => v.lang === 'pt-BR' && !v.name.includes('Google') && v.localService) ||
-        voices.find((v) => v.lang === 'pt-BR' || v.lang.startsWith('pt')) ||
-        voices[0];
-
-      if (ptVoice) {
-        utterance.voice = ptVoice;
-      }
-
-      utterance.onstart = () => {
-        if (onStart) onStart();
-      };
-
-      utterance.onend = () => {
-        this.currentUtterance = null;
-        if (onEnd) onEnd();
-      };
-
-      utterance.onerror = (e) => {
-        this.currentUtterance = null;
-        if (onError) onError(e);
-        if (onEnd) onEnd();
-      };
-
-      this.currentUtterance = utterance;
-      window.speechSynthesis.speak(utterance);
-    } catch (e) {
-      console.warn('SpeechSynthesis error:', e);
-      if (onEnd) onEnd();
-    }
+    nexusVoiceService.speak(text, onStart, onEnd, onError);
   }
 
   public stopSpeaking(): void {
-    if (this.isSynthesisSupported && typeof window !== 'undefined') {
-      try {
-        window.speechSynthesis.cancel();
-      } catch {}
-      this.currentUtterance = null;
-    }
+    nexusVoiceService.stopSpeaking();
   }
 }
 

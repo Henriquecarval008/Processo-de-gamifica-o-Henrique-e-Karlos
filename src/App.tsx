@@ -18,6 +18,7 @@ import { StudentRanking } from './components/student/StudentRanking';
 import { StudentAchievements } from './components/student/StudentAchievements';
 import { StudentCurriculum } from './components/student/StudentCurriculum';
 import { StudentProfile } from './components/student/StudentProfile';
+import { StudentGameRoomView } from './components/gameRooms/StudentGameRoomView';
 
 // Teacher Components
 import { TeacherHome } from './components/teacher/TeacherHome';
@@ -31,6 +32,7 @@ import { TeacherQuizzes } from './components/teacher/TeacherQuizzes';
 import { TeacherGamification } from './components/teacher/TeacherGamification';
 import { TeacherPerformance } from './components/teacher/TeacherPerformance';
 import { TeacherSettings } from './components/teacher/TeacherSettings';
+import { TeacherGameRoomsView } from './components/gameRooms/TeacherGameRoomsView';
 
 // Admin & Shared Components
 import { AdminPanel } from './components/admin/AdminPanel';
@@ -143,6 +145,7 @@ const AppContent: React.FC = () => {
   const renderMainContent = () => {
     // Aluno Views
     if (activeTab === 'aluno-inicio') return <StudentHome onNavigate={handleTabChange} />;
+    if (activeTab === 'aluno-salas') return <StudentGameRoomView onExit={() => handleTabChange('aluno-inicio')} />;
     if (activeTab === 'aluno-atividades') return <StudentActivities />;
     if (activeTab === 'aluno-quizzes') return <StudentQuizzes />;
     if (activeTab === 'aluno-ranking') return <StudentRanking />;
@@ -157,6 +160,7 @@ const AppContent: React.FC = () => {
 
     // Professor Views
     if (activeTab === 'prof-inicio') return <TeacherHome onNavigate={handleTabChange} />;
+    if (activeTab === 'prof-salas') return <TeacherGameRoomsView />;
     if (activeTab === 'prof-turmas') {
       return (
         <TeacherClasses

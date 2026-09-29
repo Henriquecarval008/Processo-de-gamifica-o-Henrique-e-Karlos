@@ -69,6 +69,23 @@ export type NexusEmotion =
   | 'processamento'
   | 'neutro';
 
+export type NexusSubject =
+  | 'informatica'
+  | 'matematica'
+  | 'portugues'
+  | 'ciencias'
+  | 'historia'
+  | 'geografia'
+  | 'financeira'
+  | 'programacao';
+
+export type NexusLearningMode =
+  | 'explicacao'
+  | 'professor'
+  | 'exercicios'
+  | 'revisao'
+  | 'profissional';
+
 export interface AssistantKnowledgeItem {
   id: string;
   category: string;
@@ -444,4 +461,261 @@ export interface AudioSettings {
   musicVolume: number;   // 0.0 a 1.0
   selectedTrackId?: string;
 }
+
+// ==========================================
+// SISTEMA DE FREQUÊNCIA (ATTENDANCE)
+// ==========================================
+
+export type AttendanceStatus = 'presente' | 'ausente' | 'justificado';
+
+export interface ClassSession {
+  id: string;
+  classId: string;
+  className: string;
+  projectId?: string;
+  projectName?: string;
+  teacherId: string;
+  teacherName: string;
+  date: string; // YYYY-MM-DD
+  time: string; // HH:mm
+  topic: string;
+  status: 'agendada' | 'concluida' | 'cancelada';
+  createdAt: string;
+  recordedBy?: string;
+  recordedAt?: string;
+}
+
+export interface AttendanceRecord {
+  id: string;
+  sessionId: string;
+  classId: string;
+  studentId: string;
+  studentName: string;
+  studentNickname?: string;
+  studentAvatar?: string;
+  status: AttendanceStatus;
+  justification?: string;
+  recordedAt: string;
+  recordedBy: string;
+}
+
+export interface StudentAttendanceStats {
+  studentId: string;
+  studentName: string;
+  totalSessions: number;
+  presentCount: number;
+  absentCount: number;
+  justifiedCount: number;
+  attendancePercentage: number;
+}
+
+// ==========================================
+// SISTEMA DE CURRÍCULO PROFISSIONAL
+// ==========================================
+
+export interface ResumeCourseItem {
+  id: string;
+  name: string;
+  institution: string;
+  hours: number;
+  year: string;
+  completionStatus: 'concluido' | 'em_andamento';
+}
+
+export interface ResumeExperienceItem {
+  id: string;
+  role: string;
+  company: string;
+  period: string;
+  description: string;
+}
+
+export interface ResumeProjectItem {
+  id: string;
+  title: string;
+  description: string;
+  role: string;
+}
+
+export interface ResumeLanguageItem {
+  language: string;
+  level: 'Básico' | 'Intermediário' | 'Avançado' | 'Fluente';
+}
+
+export interface ResumeData {
+  id: string;
+  studentId: string;
+  studentName: string;
+  email: string;
+  phone: string;
+  city: string;
+  neighborhood: string;
+  professionalObjective: string;
+  schooling: string;
+  courses: ResumeCourseItem[];
+  technicalSkills: string[];
+  itKnowledge: string[];
+  experiences: ResumeExperienceItem[];
+  projectsAndActivities: ResumeProjectItem[];
+  languages: ResumeLanguageItem[];
+  chosenTemplate: 'moderno' | 'classico' | 'tecnologico' | 'jovem_aprendiz';
+  updatedAt: string;
+}
+
+export interface ResumeAnalysisResult {
+  overallScore: number;
+  strengths: string[];
+  missingInfo: string[];
+  suggestions: string[];
+  interviewTips: string[];
+}
+
+// ==========================================
+// SISTEMA DE AULAS COM PROGRESSO OBRIGATÓRIO
+// ==========================================
+
+export type LessonStepType = 'didactic_reading' | 'interactive_mode' | 'practical_exercise' | 'lesson_quiz';
+
+export interface LessonMandatoryStepConfig {
+  type: LessonStepType;
+  title: string;
+  description: string;
+  required: boolean;
+  minQuizScore?: number;
+}
+
+export interface StudentLessonProgress {
+  id: string;
+  studentId: string;
+  lessonId: string;
+  moduleId: string;
+  courseId: string;
+  completedStepTypes: LessonStepType[];
+  percentCompleted: number;
+  isCompleted: boolean;
+  completedAt?: string;
+  xpAwarded: boolean;
+  xpAmount: number;
+  lastAccessedAt: string;
+}
+
+// ==========================================
+// SISTEMA DE AVALIAÇÕES E PROVAS
+// ==========================================
+
+export type EvaluationQuestionType = 'multiple_choice' | 'true_false' | 'open' | 'practical_it';
+
+export interface EvaluationQuestion {
+  id: string;
+  type: EvaluationQuestionType;
+  prompt: string;
+  options?: string[];
+  correctIndex?: number; // Para objetivas
+  expectedAnswer?: string; // Para dissertativas
+  points: number;
+  explanation?: string;
+}
+
+export interface Evaluation {
+  id: string;
+  title: string;
+  classId: string;
+  className: string;
+  projectId?: string;
+  projectName?: string;
+  teacherId: string;
+  teacherName: string;
+  contentSummary: string;
+  difficulty: 'facil' | 'intermediario' | 'avancado';
+  timeLimitMin: number;
+  totalPoints: number;
+  questionsCount: number;
+  questions: EvaluationQuestion[];
+  status: 'rascunho' | 'publicada' | 'encerrada';
+  allowReview: boolean;
+  maxAttempts: number;
+  availableFrom?: string;
+  availableUntil?: string;
+  createdAt: string;
+}
+
+export interface EvaluationSubmission {
+  id: string;
+  evaluationId: string;
+  evaluationTitle: string;
+  studentId: string;
+  studentName: string;
+  answers: Array<{
+    questionId: string;
+    selectedOption?: number;
+    textAnswer?: string;
+    isCorrect?: boolean;
+    pointsAwarded?: number;
+  }>;
+  totalScore: number;
+  maxScore: number;
+  percentage: number;
+  submittedAt: string;
+  graded: boolean;
+  teacherFeedback?: string;
+}
+
+// ==========================================
+// SALAS DE JOGOS MULTIPLAYER MODULAR
+// ==========================================
+
+export type GameRoomType = 'quiz' | 'stop' | 'memory' | 'hangman' | 'scramble' | 'cards';
+
+export interface StopCategory {
+  id: string;
+  name: string; // Ex: "Hardware", "Comando Windows", "Peça de Computador", "Site", "Programa"
+}
+
+export interface StopRoundState {
+  letter: string;
+  durationSec: number;
+  startedAt: number;
+  isRoundActive: boolean;
+  categories: StopCategory[];
+  playerAnswers: Record<string, Record<string, string>>; // playerId -> categoryId -> answer
+}
+
+export interface MemoryCard {
+  id: string;
+  pairId: string;
+  label: string;
+  concept: string;
+  icon?: string;
+  image?: string;
+  isFlipped: boolean;
+  isMatched: boolean;
+}
+
+// ==========================================
+// RELATÓRIOS MENSAIS DOCENTES
+// ==========================================
+
+export interface MonthlyReportData {
+  id: string;
+  projectId: string;
+  projectName: string;
+  classId: string;
+  className: string;
+  teacherId: string;
+  teacherName: string;
+  month: number;
+  year: number;
+  classesCount: number;
+  contentsTaught: string[];
+  activitiesCompleted: string[];
+  enrolledStudentsCount: number;
+  attendanceRate: number;
+  presentTotal: number;
+  absentTotal: number;
+  justifiedTotal: number;
+  evaluationsSummary: Array<{ title: string; avgScore: number; studentCount: number }>;
+  teacherNotes: string;
+  generatedAt: string;
+}
+
 

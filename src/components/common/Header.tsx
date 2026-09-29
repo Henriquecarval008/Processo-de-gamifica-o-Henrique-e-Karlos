@@ -216,6 +216,21 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu, onNavigateTo
               </div>
             )}
 
+            {/* Quick Play Room Button for Students */}
+            {currentUser.role === 'aluno' && onNavigateToTab && (
+              <button
+                onClick={() => {
+                  soundEffects.playClick();
+                  onNavigateToTab('aluno-salas');
+                }}
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-bold transition-all shadow-sm cursor-pointer"
+                title="Entrar em uma Sala com código PIN"
+              >
+                <Gamepad2 className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Entrar em Sala</span>
+              </button>
+            )}
+
             {/* Dynamic Project Selector for Professor / Admin */}
             {(currentUser.role === 'professor' || currentUser.role === 'admin') && (
               <div className="relative">

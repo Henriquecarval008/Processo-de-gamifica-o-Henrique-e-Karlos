@@ -12,6 +12,8 @@ import {
   FileSpreadsheet,
   AlertCircle,
   BookOpen,
+  Gamepad2,
+  Radio,
 } from 'lucide-react';
 
 interface TeacherHomeProps {
@@ -135,6 +137,34 @@ export const TeacherHome: React.FC<TeacherHomeProps> = ({ onNavigate }) => {
             Gerenciar materiais <ArrowRight className="w-3 h-3" />
           </span>
         </div>
+      </div>
+
+      {/* Multiplayer Interactive Games Banner */}
+      <div className="bg-gradient-to-r from-purple-950/70 via-slate-900 to-indigo-950/80 border-2 border-purple-500/40 hover:border-purple-400 rounded-2xl p-5 sm:p-6 shadow-xl relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center gap-1">
+              <Radio className="w-3 h-3 text-purple-400 animate-pulse" />
+              Gamificação Interativa ao Vivo
+            </span>
+            <span className="text-xs text-amber-400 font-bold">Estilo Kahoot</span>
+          </div>
+          <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+            <span>🎮 Salas Multiplayer (Stop, Quiz, Memória & Forca)</span>
+          </h2>
+          <p className="text-xs text-slate-300 max-w-xl leading-relaxed">
+            Inicie partidas dinâmicas e sincronizadas com a sua turma. Projete o código PIN de 6 dígitos no telão da sala e acompanhe as respostas e o pódio em tempo real!
+          </p>
+        </div>
+
+        <button
+          onClick={() => onNavigate('prof-salas')}
+          className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white font-black text-xs shadow-lg shadow-purple-500/30 flex items-center justify-center gap-2 transition-transform hover:scale-[1.02] cursor-pointer shrink-0"
+        >
+          <Gamepad2 className="w-4 h-4" />
+          <span>Abrir Central de Salas</span>
+          <ArrowRight className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Main Grid: Atividades para Corrigir (Immediate Highlight) & Turmas Ativas */}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useGameinfor } from '../../context/GameinforContext';
 import {
   Sparkles,
@@ -16,7 +16,10 @@ import {
   GraduationCap,
   Lock,
   Gamepad2,
+  Radio,
 } from 'lucide-react';
+import { JoinRoomModal } from '../gameRooms/JoinRoomModal';
+import { soundEffects } from '../../utils/soundEffects';
 
 interface StudentHomeProps {
   onNavigate: (tabId: string) => void;
@@ -35,6 +38,9 @@ export const StudentHome: React.FC<StudentHomeProps> = ({ onNavigate }) => {
     isAuthenticated,
     openUnifiedAccessModal,
   } = useGameinfor();
+
+  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
+  const [quickPin, setQuickPin] = useState('');
 
   // Current level data
   const currentLevel = levels.find((l) => l.level === currentUser.level) || levels[0];
@@ -208,6 +214,67 @@ export const StudentHome: React.FC<StudentHomeProps> = ({ onNavigate }) => {
         {/* Ambient background glow */}
         <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
       </div>
+
+      {/* PROMINENT ACTION: ENTRAR EM UMA SALA (ESTILO KAHOOT MULTIPLAYER) */}
+      <div className="bg-gradient-to-r from-cyan-950 via-slate-900 to-blue-950 border-2 border-cyan-500/40 hover:border-cyan-400/80 rounded-2xl p-5 sm:p-6 shadow-2xl relative overflow-hidden transition-all group">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
+                <Radio className="w-3 h-3 text-cyan-400 animate-pulse" />
+                Salas de Aula ao Vivo
+              </span>
+              <span className="text-xs text-amber-400 font-bold flex items-center gap-1">
+                <Sparkles className="w-3 h-3 inline" />
+                Stop • Quiz • Memória • Forca
+              </span>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+              <span>🎮 ENTRAR EM UMA SALA</span>
+            </h2>
+            <p className="text-xs text-slate-300 max-w-xl leading-relaxed">
+              O professor iniciou uma partida? Digite o código PIN de 6 dígitos projetado no telão para entrar na sala de espera e disputar o pódio!
+            </p>
+          </div>
+
+          {/* Quick PIN input & Button */}
+          <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0">
+            <div className="relative w-full sm:w-44">
+              <input
+                type="text"
+                maxLength={6}
+                value={quickPin}
+                onChange={(e) => setQuickPin(e.target.value.replace(/\D/g, ''))}
+                placeholder="Código PIN"
+                className="w-full text-center text-lg sm:text-xl font-mono font-black tracking-widest bg-slate-950 border-2 border-slate-700 focus:border-cyan-400 rounded-xl py-2.5 px-3 text-white placeholder-slate-500 outline-none transition-colors"
+              />
+            </div>
+            <button
+              onClick={() => {
+                soundEffects.playClick();
+                if (quickPin.trim().length === 6) {
+                  onNavigate('aluno-salas');
+                } else {
+                  setIsJoinModalOpen(true);
+                }
+              }}
+              className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black text-xs shadow-lg shadow-cyan-500/30 flex items-center justify-center gap-2 transition-transform hover:scale-[1.03] cursor-pointer"
+            >
+              <span>Entrar na Partida</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Join Modal */}
+      <JoinRoomModal
+        isOpen={isJoinModalOpen}
+        onClose={() => setIsJoinModalOpen(false)}
+        onJoined={(room) => {
+          onNavigate('aluno-salas');
+        }}
+      />
 
       {/* Fast Metric Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">

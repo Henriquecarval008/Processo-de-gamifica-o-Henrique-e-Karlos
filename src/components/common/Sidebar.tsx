@@ -23,6 +23,7 @@ import {
   FolderKanban,
   LogOut,
   LogIn,
+  Gamepad2,
 } from 'lucide-react';
 
 export interface SidebarProps {
@@ -71,6 +72,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   // Menus definition
   const studentMenu: MenuItem[] = [
     { id: 'aluno-inicio', label: 'Início', icon: Home },
+    { id: 'aluno-salas', label: 'Salas & Jogos', icon: Gamepad2 },
     {
       id: 'aluno-atividades',
       label: 'Atividades',
@@ -88,6 +90,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'prof-inicio', label: 'Início', icon: Home },
     { id: 'prof-projetos', label: 'Projetos', icon: FolderKanban },
     { id: 'prof-turmas', label: 'Minhas Turmas', icon: Users },
+    { id: 'prof-salas', label: 'Salas Multiplayer', icon: Gamepad2 },
     { id: 'prof-alunos', label: 'Alunos', icon: GraduationCap },
     { id: 'prof-conteudos', label: 'Conteúdos', icon: BookOpen },
     { id: 'prof-materiais', label: 'Gerador de Material', icon: Sparkles },

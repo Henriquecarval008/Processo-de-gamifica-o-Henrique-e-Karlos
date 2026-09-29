@@ -268,7 +268,7 @@ export const UnifiedAccessModal: React.FC<UnifiedAccessModalProps> = ({
             >
               <Shield className={`w-5 h-5 ${selectedRole === 'admin' ? 'text-purple-400' : ''}`} />
               <span>Administrador</span>
-              <span className="text-[9px] font-semibold text-slate-400">Henrique & Karlos</span>
+              <span className="text-[9px] font-semibold text-slate-400">Gestão & Controle</span>
             </button>
 
             {/* 2. Professor */}
@@ -319,20 +319,10 @@ export const UnifiedAccessModal: React.FC<UnifiedAccessModalProps> = ({
           )}
 
           {/* ============================================================== */}
-          {/* 1. FORMULÁRIO ADMINISTRATIVO (Henrique Carvalho & Karlos)      */}
+          {/* 1. FORMULÁRIO ADMINISTRATIVO                                   */}
           {/* ============================================================== */}
           {selectedRole === 'admin' && (
-            <form onSubmit={handleAdminSubmit} className="space-y-4 text-xs">
-              <div className="p-3 rounded-2xl bg-purple-950/40 border border-purple-500/30 flex items-start gap-2.5 text-purple-200 text-[11px] leading-relaxed">
-                <Shield className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
-                <div>
-                  <strong className="text-purple-300">Acesso Administrativo Central:</strong>
-                  <p>
-                    Contas com autoridade completa: <strong>Henrique Carvalho</strong> (usuário <code className="bg-purple-900/60 px-1 py-0.5 rounded text-white">admin</code>) e <strong>Karlos</strong> (usuário <code className="bg-purple-900/60 px-1 py-0.5 rounded text-white">karlos</code>).
-                  </p>
-                </div>
-              </div>
-
+            <form onSubmit={handleAdminSubmit} className="space-y-4 text-xs pt-1">
               <div>
                 <label className="block text-slate-300 font-semibold mb-1.5">
                   Nome de Usuário ou E-mail do Administrador:
@@ -344,8 +334,8 @@ export const UnifiedAccessModal: React.FC<UnifiedAccessModalProps> = ({
                     required
                     value={adminUsername}
                     onChange={(e) => setAdminUsername(e.target.value)}
-                    placeholder="Ex: admin ou karlos"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-3 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                    placeholder="Digite seu usuário ou e-mail"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-3 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
                   />
                 </div>
               </div>

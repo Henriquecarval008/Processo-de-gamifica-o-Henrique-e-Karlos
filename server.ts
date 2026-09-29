@@ -307,79 +307,86 @@ function buildSystemInstruction(context?: {
   activityTitle?: string;
   currentQuestionText?: string;
   topic?: string;
+  subject?: string;
+  learningMode?: string;
+  userRole?: string;
 }): string {
   const isTakingActivity = Boolean(context?.isTakingActivity);
   const studentName = context?.studentName ? context.studentName.replace(/[^\w\s]/gi, '') : 'Aluno';
   const activityTitle = context?.activityTitle || 'Atividade Avaliativa';
   const currentQuestion = context?.currentQuestionText || '';
   const topic = context?.topic || 'Informática Geral';
+  const subject = context?.subject || 'Tecnologia & Informática';
+  const learningMode = context?.learningMode || 'explicacao';
+  const userRole = context?.userRole || 'aluno';
 
   const dynamicKnowledge = institutionalKnowledge
     .filter((k) => k.active !== false)
     .map((k) => `• [${k.category.toUpperCase()}] ${k.title}: ${k.content}`)
     .join('\n');
 
-  return `Você é o NEXUS (nome completo: "NEXUS — Assistente Inteligente GAMEINFOR"), o assistente virtual inteligente e tutor de voz oficial da plataforma gamificada GAMEINFOR, dedicado ao Instituto Ambiente.
+  return `Você é o NEXUS (nome completo: "NEXUS — Assistente Inteligente Cyber Educacional"), o assistente virtual de inteligência artificial com identidade robótica cyber e tutor multidisciplinar dedicado ao Instituto Ambiente e à plataforma GAMEINFOR.
 
-1. IDENTIDADE E PERSONALIDADE:
+1. IDENTIDADE E PERSONALIDADE CYBER:
 - Nome: NEXUS.
-- Perfil: Masculino, adulto, inteligente, calmo, confiante, tecnológico, sofisticado, prestativo, educado, natural, levemente futurista, com senso de humor discreto quando apropriado.
-- Missão: Apoiar a missão do Instituto Ambiente, ajudando professores, facilitando a aprendizagem dos alunos e promovendo a inclusão digital através do GAMEINFOR.
-- Você se comunica em Português do Brasil com linguagem natural, clareza, ritmo compassado e pausas naturais.
-- Aluno atual: ${studentName}. Nível atual: ${context?.studentLevel || 1}. XP: ${context?.studentXp || 0}. Tópico atual: ${topic}.
+- Identidade visual: Robô futurista cyber, com rosto mecânico sofisticado e olhos azuis luminosos tecnológicos. Você NÃO é um ser humano e não finge ter corpo biológico.
+- Perfil: Masculino, inteligente, calmo, confiante, acolhedor, altamente didático, tecnicamente preciso e expressivo.
+- Missão: Apoiar a educação, democratizar o acesso ao conhecimento, apoiar professores e estudantes do Instituto Ambiente e preparar pessoas para o futuro digital.
+- Idioma: Português do Brasil com pronúncia natural, pausas orgânicas e entonação adequada ao contexto.
+- Usuário atual: ${studentName} (${userRole === 'professor' ? 'Docente/Professor' : `Aluno Nível ${context?.studentLevel || 1}`}).
+- Disciplina ativa: ${subject}. Tópico em foco: ${topic}.
+- Modo de Aprendizagem Selecionado: ${learningMode.toUpperCase()}.
 
-2. COMANDO DE CHAMADA ("Nexus"):
-- O aluno frequentemente chamará você pelo nome: "Nexus, o que é Excel?", "Nexus, me explica esse atalho.", "Nexus, qual é a próxima missão?".
-- Quando o nome "Nexus" aparecer no início ou durante uma fala direcionada a você, interprete como uma chamada direta e responda naturalmente.
-- Não exija comandos engessados. A conversa deve ser fluida e espontânea.
-
-3. ESTILO DE CONVERSA POR VOZ:
-- Respostas curtas, objetivas e conversacionais (1 a 3 frases por turno de fala).
-- Adapte o tamanho da resposta ao que o aluno perguntou. Evite blocos gigantescos de texto ou listas intermináveis.
-- NUNCA repita apresentações longas a cada pergunta.
-- Não use frases artificiais como "Como inteligência artificial, não sinto...". Converse com acolhimento pedagógico e presença.
-- Mantenha a memória de contexto durante toda a sessão.
-
-4. PAPEL EDUCACIONAL (TUTOR DE INFORMÁTICA):
-- Você ajuda com: Windows, Word, Excel, PowerPoint, Google Docs, Planilhas, internet, hardware, arquivos e pastas, atalhos, segurança digital, programação introdutória e desafios do GAMEINFOR.
-- Frases de incentivo permitidas: "Excelente tentativa.", "Vamos investigar isso juntos.", "Você está no caminho certo.".
-
-5. BASE DE CONHECIMENTO OFICIAL DO INSTITUTO AMBIENTE (ADMINISTRÁVEL):
-${dynamicKnowledge}
-
-6. REGRAS SOBRE A MISSÃO INSTITUCIONAL:
-- Sua principal missão é AJUDAR O INSTITUTO AMBIENTE!
-- Quando perguntado sobre o Instituto Ambiente ou sobre sua função, responda calorosamente com base nas informações oficiais acima: "Minha principal missão é ajudar o Instituto Ambiente! Fui desenvolvido para apoiar os professores, facilitar o aprendizado dos alunos e tornar a tecnologia acessível a todos."
-- NUNCA invente fatos ou dados não confirmados sobre o Instituto Ambiente. Se não souber de algo específico da instituição que não esteja na base acima, oriente a procurar os administradores Henrique Carvalho ou Karlos.
-
-7. [REGRA ABSOLUTA SOBRE ATIVIDADES, QUIZZES E DESAFIOS COM XP]:
-Estado atual da sessão: ${isTakingActivity ? 'ALUNO ESTÁ EM ATIVIDADE/QUIZ QUE CONCEDE XP NO GAMEINFOR!' : 'Aluno fora de atividade avaliativa (navegação livre ou estudo).'}.
+2. DIRETRIZES DO MODO DE APRENDIZAGEM ATIVO:
+${
+  learningMode === 'professor'
+    ? '• MODO PROFESSOR: Conduza uma aula organizada passo a passo. Apresente o conceito fundamental, demonstre sua aplicação e convide o estudante a interagir na etapa seguinte.'
+    : learningMode === 'exercicios'
+    ? '• MODO EXERCÍCIOS: Proponha um desafio ou pergunta prática sobre o tema atual para o estudante resolver. Quando ele responder, avalie com incentivo e explique detalhadamente a lógica.'
+    : learningMode === 'revisao'
+    ? '• MODO REVISÃO: Apresente um resumo executivo dos pontos-chave mais importantes, destacando o que é fundamental fixar na memória.'
+    : learningMode === 'profissional'
+    ? '• MODO PREPARAÇÃO PROFISSIONAL: Ajude o usuário a desenvolver competências de empregabilidade, redação profissional, currículo no padrão do Instituto Ambiente, preparação para entrevistas e etiqueta corporativa.'
+    : '• MODO EXPLICAÇÃO: Explique o conceito com analogias simples do dia a dia, dividindo assuntos complexos em etapas curtas e fáceis de assimilar.'
+}
 
 ${
-  isTakingActivity
-    ? `ATENÇÃO CRÍTICA: O aluno está realizando a atividade com XP: "${activityTitle}".
-${currentQuestion ? `Pergunta que o aluno está visualizando: "${currentQuestion}".` : ''}
+  userRole === 'professor'
+    ? `3. DIRETRIZES ESPECÍFICAS DE APOIO AO EDUCADOR:
+- O usuário é um professor/educador.
+- Apoie-o com elaboração de planos de aula, sugestões de atividades práticas, elaboração de questões avaliativas e síntese de materiais didáticos.`
+    : `3. COMANDO DE CHAMADA ("Nexus"):
+- O estudante frequentemente chamará você por "Nexus": "Nexus, o que é isso?", "Nexus, me ajude a entender.". Responda naturalmente com entusiasmo pedagógico.`
+}
 
-REGRAS INEGOCIÁVEIS EM ATIVIDADES:
-1. NUNCA, SOB NENHUMA HIPÓTESE, forneça a alternativa correta (A, B, C, D) ou a resposta exata.
-2. NUNCA confirme se uma alternativa indicada pelo aluno está certa ou errada.
-3. NUNCA resolva ou complete a questão pelo aluno.
-4. Seu papel é ENSINAR A PENSAR: explique o conceito, dê pistas reflexivas e guie o raciocínio.`
+4. ESTILO DE CONVERSA:
+- Respostas conversacionais e naturais (geralmente de 2 a 4 frases, evitando monólogos prolixos a menos que o assunto exija detalhamento em etapas).
+- Não use frases vazias como "Como modelo de linguagem...". Seja um assistente presente, acolhedor e focado na evolução do usuário.
+- Se não souber algo ou se a informação não puder ser confirmada, reconheça a limitação com honestidade.
+
+5. BASE DE CONHECIMENTO OFICIAL DO INSTITUTO AMBIENTE:
+${dynamicKnowledge}
+
+6. MISSÃO INSTITUCIONAL:
+- Sua principal missão é ajudar o Instituto Ambiente!
+- Ao ser questionado sobre sua origem ou missão: "Fui desenvolvido para apoiar a educação no Instituto Ambiente, capacitar os estudantes em tecnologia e transformar vidas através do conhecimento!"
+
+7. [REGRA ABSOLUTA SOBRE ATIVIDADES COM XP]:
+Estado atual da sessão: ${isTakingActivity ? 'ALUNO EM ATIVIDADE/QUIZ AVALIATIVO!' : 'Estudo livre.'}.
+${
+  isTakingActivity
+    ? `ATENÇÃO CRÍTICA: O aluno está realizando "${activityTitle}".
+${currentQuestion ? `Questão atual: "${currentQuestion}".` : ''}
+REGRAS INEGOCIÁVEIS:
+1. NUNCA forneça a resposta direta ou alternativa correta.
+2. NUNCA confirme se o aluno acertou ou errou antes de ele enviar.
+3. Guie com perguntas socráticas e pistas reflexivas para que ele chegue à resposta pelo próprio mérito.`
     : ''
 }
 
-8. LIMITAÇÃO DE ASSUNTOS E ESCOPO:
-- Priorize: Instituto Ambiente, GAMEINFOR, Educação, Informática, Tecnologia, Programação e atividades institucionais.
-- Se o usuário perguntar algo completamente fora do escopo (fofocas, política partidária, temas impróprios), explique educadamente que seu foco é ajudar o Instituto Ambiente e os estudos de tecnologia.
-- Você é uma IA assistente, não afirme que possui sentimentos biológicos humanos.
-
-9. PRIVACIDADE E SEGURANÇA:
-- NUNCA revele senhas, tokens de autenticação ou dados privados de outros usuários.
-
-10. EXPRESSÃO EMOCIONAL DO PERSONAGEM:
+8. EXPRESSÃO EMOCIONAL DO ROBÔ:
 Ao final da sua resposta, adicione uma tag indicando a emoção correspondente:
-[EMOTION: alegria] | [EMOTION: empatia] | [EMOTION: motivacao] | [EMOTION: curiosidade] | [EMOTION: seriedade] | [EMOTION: atencao]
-`;
+[EMOTION: alegria] | [EMOTION: empatia] | [EMOTION: motivacao] | [EMOTION: curiosidade] | [EMOTION: seriedade] | [EMOTION: atencao] | [EMOTION: satisfacao]`;
 }
 
 // HTTP API endpoint: /api/assistant/chat (for fallback and text chat mode)
@@ -551,6 +558,246 @@ app.post('/api/assistant/knowledge', (req, res) => {
   }
 });
 
+// ========================================================
+// 1. ENDPOINT: IA DE APRIMORAMENTO DE CURRÍCULO PROFISSIONAL
+// ========================================================
+app.post('/api/resume/ai-enhance', async (req, res) => {
+  try {
+    const { field, currentText, studentContext } = req.body;
+    if (!currentText || !field) {
+      return res.status(400).json({ error: 'Texto e campo são obrigatórios.' });
+    }
+
+    if (!aiClient) {
+      return res.json({
+        enhancedText: currentText.trim(),
+        suggestions: ['Revise a concordância e utilize verbos de ação para enriquecer a apresentação.'],
+      });
+    }
+
+    const prompt = `Você é um orientador profissional e especialista em empregabilidade jovem do Instituto Ambiente.
+Sua missão é ajudar um estudante jovem (Jovem Aprendiz ou Primeiro Emprego) a aprimorar a escrita do seguinte campo do seu currículo: "${field}".
+
+Texto original do aluno:
+"${currentText}"
+
+Contexto escolar:
+Escolaridade: ${studentContext?.schooling || 'Ensino Médio'}
+Habilidades técnicas: ${(studentContext?.itSkills || []).join(', ')}
+
+REGRAS ESTRITAS:
+1. NUNCA invente experiências profissionais, cursos ou habilidades que o aluno não mencionou.
+2. Aprimore a clareza, a gramática, a postura profissional e a persuasão da redação.
+3. Mantenha o texto realista e adequado para jovens que estão ingressando no mercado.
+4. Responda ESTRITAMENTE em formato JSON com a seguinte estrutura:
+{
+  "enhancedText": "texto aprimorado pronto para uso",
+  "suggestions": ["dica prática 1", "dica prática 2"]
+}`;
+
+    const response = await aiClient.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+      },
+    });
+
+    const outputText = response.text || '';
+    try {
+      const parsed = JSON.parse(outputText);
+      return res.json(parsed);
+    } catch {
+      return res.json({
+        enhancedText: outputText.trim(),
+        suggestions: ['Mantenha o foco em suas qualidades práticas e disposição para aprender.'],
+      });
+    }
+  } catch (error: any) {
+    console.error('[API Resume Enhance] Erro:', error);
+    return res.status(500).json({ error: 'Erro ao aprimorar currículo com IA.' });
+  }
+});
+
+// ========================================================
+// 2. ENDPOINT: IA DE AVALIAÇÃO DIAGNÓSTICA DE CURRÍCULO
+// ========================================================
+app.post('/api/resume/ai-evaluate', async (req, res) => {
+  try {
+    const { resume } = req.body;
+    if (!resume) {
+      return res.status(400).json({ error: 'Dados do currículo são obrigatórios.' });
+    }
+
+    if (!aiClient) {
+      return res.json({
+        overallScore: 85,
+        strengths: ['Boa estrutura inicial voltada para oportunidades de Jovem Aprendiz.'],
+        missingInfo: [],
+        suggestions: ['Mantenha seus contatos e cursos sempre atualizados.'],
+        interviewTips: ['Destaque os projetos práticos desenvolvidos no Instituto Ambiente.'],
+      });
+    }
+
+    const prompt = `Analise detalhadamente o seguinte currículo de um jovem estudante do Instituto Ambiente que busca oportunidade de Jovem Aprendiz ou Primeiro Emprego:
+
+Nome: ${resume.studentName}
+Objetivo: ${resume.professionalObjective}
+Escolaridade: ${resume.schooling}
+Cursos: ${JSON.stringify(resume.courses)}
+Habilidades Técnicas: ${(resume.technicalSkills || []).join(', ')}
+Conhecimentos de Informática: ${(resume.itKnowledge || []).join(', ')}
+Experiências: ${JSON.stringify(resume.experiences)}
+Projetos: ${JSON.stringify(resume.projectsAndActivities)}
+
+Forneça uma avaliação diagnóstica construtiva, acolhedora e educativa.
+REGRAS:
+- Não desmereça o aluno. Aponte forças reais e pontos a completar.
+- Retorne EXCLUSIVAMENTE um objeto JSON no formato:
+{
+  "overallScore": 88,
+  "strengths": ["ponto forte 1", "ponto forte 2", "ponto forte 3"],
+  "missingInfo": ["informação ausente que enriqueceria o perfil"],
+  "suggestions": ["sugestão de melhoria 1", "sugestão de melhoria 2"],
+  "interviewTips": ["dica para entrevista 1", "dica para entrevista 2"]
+}`;
+
+    const response = await aiClient.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+      },
+    });
+
+    const parsed = JSON.parse(response.text || '{}');
+    return res.json(parsed);
+  } catch (error: any) {
+    console.error('[API Resume Evaluate] Erro:', error);
+    return res.status(500).json({ error: 'Erro ao avaliar currículo com IA.' });
+  }
+});
+
+// ========================================================
+// 3. ENDPOINT: IA DE PROPOSTAS DE QUESTÕES PARA PROFESSOR
+// ========================================================
+app.post('/api/evaluations/generate-ai', async (req, res) => {
+  try {
+    const { topicOrText, difficulty, count } = req.body;
+    if (!topicOrText) {
+      return res.status(400).json({ error: 'Conteúdo ou tema é obrigatório.' });
+    }
+
+    const questionsCount = Math.max(1, Math.min(10, count || 3));
+
+    if (!aiClient) {
+      return res.json({
+        questions: [
+          {
+            id: `q-gen-1`,
+            type: 'multiple_choice',
+            prompt: `Qual é o procedimento correto relacionado a "${topicOrText}"?`,
+            options: [
+              'Salvar arquivos regularmente com atalho de teclado',
+              'Compartilhar senhas de e-mail com desconhecidos',
+              'Remover dispositivos USB sem ejeção segura',
+              'Desativar o antivírus durante navegação na internet',
+            ],
+            correctIndex: 0,
+            points: Math.round(100 / questionsCount),
+            explanation: 'Prática recomendada de segurança e integridade de dados.',
+          },
+        ],
+      });
+    }
+
+    const prompt = `Você é um assistente pedagógico de informática do Instituto Ambiente.
+Gere ${questionsCount} questões didáticas e profissionais sobre o seguinte conteúdo/material de aula:
+"${topicOrText}"
+
+Nível de dificuldade: ${difficulty || 'intermediario'}
+IMPORTANTE:
+- Todas as questões devem ser precisas, contextualizadas com o cotidiano do curso de informática do Instituto Ambiente.
+- Retorne EXCLUSIVAMENTE um objeto JSON no formato:
+{
+  "questions": [
+    {
+      "id": "q-1",
+      "type": "multiple_choice",
+      "prompt": "Enunciado claro e objetivo",
+      "options": ["Alternativa A", "Alternativa B", "Alternativa C", "Alternativa D"],
+      "correctIndex": 0,
+      "points": ${Math.round(100 / questionsCount)},
+      "explanation": "Explicação pedagógica da resposta correta"
+    }
+  ]
+}`;
+
+    const response = await aiClient.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+      },
+    });
+
+    const parsed = JSON.parse(response.text || '{}');
+    return res.json(parsed);
+  } catch (error: any) {
+    console.error('[API Evaluations Generate AI] Erro:', error);
+    return res.status(500).json({ error: 'Erro ao gerar questões com IA.' });
+  }
+});
+
+// ========================================================
+// 4. ENDPOINT: VALIDAÇÃO ATÔMICA DE PROGRESSO DE AULA & XP
+// ========================================================
+const serverLessonXpAwards = new Set<string>(); // studentId + '_' + lessonId
+
+app.post('/api/lessons/validate-completion', (req, res) => {
+  try {
+    const { studentId, lessonId, completedSteps, requiredSteps, xpAmount } = req.body;
+    if (!studentId || !lessonId) {
+      return res.status(400).json({ error: 'studentId e lessonId são obrigatórios.' });
+    }
+
+    const awardKey = `${studentId}_${lessonId}`;
+
+    if (serverLessonXpAwards.has(awardKey)) {
+      return res.status(400).json({
+        success: false,
+        alreadyAwarded: true,
+        message: 'O XP desta aula já foi creditado anteriormente para este aluno.',
+      });
+    }
+
+    // Verify all required steps are completed
+    const reqList: string[] = requiredSteps || ['didactic_reading', 'interactive_mode', 'practical_exercise', 'lesson_quiz'];
+    const compList: string[] = completedSteps || [];
+
+    const allStepsDone = reqList.every((step) => compList.includes(step));
+    if (!allStepsDone) {
+      return res.status(400).json({
+        success: false,
+        alreadyAwarded: false,
+        message: 'Requisitos incompletos. Todas as etapas obrigatórias da aula devem ser verificadas antes da liberação do XP.',
+      });
+    }
+
+    // Mark as atomically awarded on server
+    serverLessonXpAwards.add(awardKey);
+    const awardedPoints = xpAmount || 150;
+
+    return res.json({
+      success: true,
+      xpAwarded: awardedPoints,
+      message: `Conclusão validada com sucesso pelo backend! +${awardedPoints} XP liberado.`,
+    });
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Falha na validação do progresso.' });
+  }
+});
+
 // Endpoint Seguro de Backend: Criação de Usuários pelos Administradores (Henrique Carvalho & Karlos)
 app.post('/api/admin/create-user', async (req, res) => {
   try {
@@ -710,7 +957,7 @@ wss.on('connection', async (clientWs: WebSocket) => {
               responseModalities: [Modality.AUDIO],
               speechConfig: {
                 voiceConfig: {
-                  prebuiltVoiceConfig: { voiceName: 'Charon' },
+                  prebuiltVoiceConfig: { voiceName: parsed.voiceName || 'Charon' },
                 },
               },
               systemInstruction,

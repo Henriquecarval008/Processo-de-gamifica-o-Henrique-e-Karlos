@@ -9,6 +9,8 @@
  * - Real-time Audio Analyser for holographic visualizer
  */
 
+import { nexusVoiceService } from './nexusVoiceService';
+
 export type MicDiagnosticErrorType =
   | 'microphonePermissionDenied'
   | 'microphonePermissionPending'
@@ -257,10 +259,13 @@ class LiveVoiceService {
         this.isConnected = true;
 
         // Send initialization payload to server
+        const currentVoice = nexusVoiceService.getSettings().selectedVoiceId;
+        const voiceName = currentVoice === 'nexus-fenrir' ? 'Fenrir' : 'Charon';
         this.ws?.send(
           JSON.stringify({
             type: 'init',
             context,
+            voiceName,
             sendGreeting,
           })
         );

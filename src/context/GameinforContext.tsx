@@ -221,6 +221,7 @@ interface GameinforContextType {
     projectName?: string;
   }) => void;
   updateLevelConfig: (updatedLevels: LevelConfig[]) => void;
+  addXp: (amount: number, reason?: string) => void;
   dismissNotification: (id: string) => void;
   resetAllData: () => void;
 }
@@ -1854,6 +1855,38 @@ export const GameinforProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
   };
 
+  const addXp = (amount: number, reason?: string) => {
+    if (amount <= 0) return;
+    setUsers((prev) =>
+      prev.map((u) => {
+        if (u.id === currentUser.id) {
+          const newXp = u.xp + amount;
+          const newLevel = calculateLevel(newXp, levels);
+          if (newLevel > u.level) {
+            addNotification({
+              type: 'level-up',
+              title: 'NOVO NÍVEL ALCANÇADO! 🚀',
+              message: `Parabéns, você subiu para o Nível ${newLevel}!`,
+            });
+          } else {
+            addNotification({
+              type: 'xp',
+              title: 'XP Conquistado!',
+              message: reason || `Você ganhou +${amount} XP por participação em partida multiplayer!`,
+              xpAmount: amount,
+            });
+          }
+          return {
+            ...u,
+            xp: newXp,
+            level: newLevel,
+          };
+        }
+        return u;
+      })
+    );
+  };
+
   const resetAllData = () => {
     localStorage.removeItem(STORAGE_KEY);
     setProjects(initialProjects);
@@ -1925,6 +1958,7 @@ export const GameinforProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         createClassRoom,
         createUser,
         updateLevelConfig,
+        addXp,
         addNotification,
         dismissNotification,
         resetAllData,

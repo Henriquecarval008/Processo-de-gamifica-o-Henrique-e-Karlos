@@ -22,6 +22,8 @@ export const NexusRobotFace: React.FC<NexusRobotFaceProps> = ({
   const [isBlinking, setIsBlinking] = useState(false);
   // Micro speech wave tick for mouth movement when speaking
   const [speechTick, setSpeechTick] = useState(0);
+  // Organic eye gaze tracking offset (saccades)
+  const [gazeOffset, setGazeOffset] = useState({ x: 0, y: 0 });
 
   // Organic blink timer (every 4-6 seconds)
   useEffect(() => {
@@ -38,6 +40,39 @@ export const NexusRobotFace: React.FC<NexusRobotFaceProps> = ({
     timeoutId = setTimeout(triggerBlink, 3000);
     return () => clearTimeout(timeoutId);
   }, []);
+
+  // Organic eye micro-movements (saccades)
+  useEffect(() => {
+    if (status === 'thinking') {
+      setGazeOffset({ x: 0, y: -2 });
+      return;
+    }
+    if (status === 'listening') {
+      setGazeOffset({ x: 0, y: 1 });
+      return;
+    }
+    if (emotion === 'curiosidade') {
+      setGazeOffset({ x: 2, y: -1 });
+      return;
+    }
+
+    let timeoutId: any;
+    const shiftGaze = () => {
+      const positions = [
+        { x: 0, y: 0 },
+        { x: 1.5, y: 0 },
+        { x: -1.5, y: 0 },
+        { x: 0, y: 0.8 },
+        { x: 0, y: 0 },
+      ];
+      const chosen = positions[Math.floor(Math.random() * positions.length)];
+      setGazeOffset(chosen);
+      timeoutId = setTimeout(shiftGaze, Math.random() * 2500 + 3500);
+    };
+
+    timeoutId = setTimeout(shiftGaze, 3500);
+    return () => clearTimeout(timeoutId);
+  }, [status, emotion]);
 
   // Speech rhythm animation loop
   useEffect(() => {
@@ -572,8 +607,8 @@ export const NexusRobotFace: React.FC<NexusRobotFaceProps> = ({
               <>
                 {/* Left Eye Outer Luminous Ring */}
                 <ellipse
-                  cx="128"
-                  cy="144"
+                  cx={128 + gazeOffset.x * 0.7}
+                  cy={144 + gazeOffset.y * 0.7}
                   rx={status === 'listening' ? '12' : '10'}
                   ry={status === 'listening' ? '7.5' : '6.5'}
                   fill="none"
@@ -585,20 +620,28 @@ export const NexusRobotFace: React.FC<NexusRobotFaceProps> = ({
                 />
                 {/* Left Eye Digital Iris/Core */}
                 <circle
-                  cx="128"
-                  cy="144"
+                  cx={128 + gazeOffset.x}
+                  cy={144 + gazeOffset.y}
                   r={status === 'thinking' ? 3.5 : 4.5}
                   fill={theme.eyeColor}
                   filter="url(#eye-glow)"
                 />
-                <circle cx="128" cy="144" r="1.8" fill="#ffffff" />
+                <circle cx={128 + gazeOffset.x} cy={144 + gazeOffset.y} r="1.8" fill="#ffffff" />
                 {/* Tech pupil tick */}
-                <line x1="120" y1="144" x2="136" y2="144" stroke={theme.accent} strokeWidth="0.8" opacity="0.7" />
+                <line
+                  x1={120 + gazeOffset.x}
+                  y1={144 + gazeOffset.y}
+                  x2={136 + gazeOffset.x}
+                  y2={144 + gazeOffset.y}
+                  stroke={theme.accent}
+                  strokeWidth="0.8"
+                  opacity="0.7"
+                />
 
                 {/* Right Eye Outer Luminous Ring */}
                 <ellipse
-                  cx="192"
-                  cy="144"
+                  cx={192 + gazeOffset.x * 0.7}
+                  cy={144 + gazeOffset.y * 0.7}
                   rx={status === 'listening' ? '12' : '10'}
                   ry={status === 'listening' ? '7.5' : '6.5'}
                   fill="none"
@@ -610,15 +653,23 @@ export const NexusRobotFace: React.FC<NexusRobotFaceProps> = ({
                 />
                 {/* Right Eye Digital Iris/Core */}
                 <circle
-                  cx="192"
-                  cy="144"
+                  cx={192 + gazeOffset.x}
+                  cy={144 + gazeOffset.y}
                   r={status === 'thinking' ? 3.5 : 4.5}
                   fill={theme.eyeColor}
                   filter="url(#eye-glow)"
                 />
-                <circle cx="192" cy="144" r="1.8" fill="#ffffff" />
+                <circle cx={192 + gazeOffset.x} cy={144 + gazeOffset.y} r="1.8" fill="#ffffff" />
                 {/* Tech pupil tick */}
-                <line x1="184" y1="144" x2="200" y2="144" stroke={theme.accent} strokeWidth="0.8" opacity="0.7" />
+                <line
+                  x1={184 + gazeOffset.x}
+                  y1={144 + gazeOffset.y}
+                  x2={200 + gazeOffset.x}
+                  y2={144 + gazeOffset.y}
+                  stroke={theme.accent}
+                  strokeWidth="0.8"
+                  opacity="0.7"
+                />
               </>
             ) : (
               /* Blink state: Sleek horizontal cyber slits */
